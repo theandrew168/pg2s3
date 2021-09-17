@@ -96,6 +96,10 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// TODO: encrypt the backup (vanilla AES256 or AES256 + HMAC SHA-512?)
+	// https://stackoverflow.com/questions/49546567/how-do-you-encrypt-large-files-byte-streams-in-go
+	// https://github.com/odeke-em/drive/wiki/End-to-End-Encryption
+
 	log.Printf("uploading backup: %s\n", objectName)
 	info, err := client.FPutObject(ctx,
 		bucketName,
