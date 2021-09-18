@@ -1,0 +1,52 @@
+name: Test
+
+on: [push, pull_request]
+
+jobs:
+  deploy:
+    name: Test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v2
+    - name: Setup Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.17
+    # have to manually setup the container until GHA allows custom commands:
+    # https://stackoverflow.com/questions/64031598/creating-a-minios3-container-inside-a-github-actions-yml-file
+    # https://stackoverflow.com/questions/60849745/how-can-i-run-a-command-in-github-action-service-containers
+    # https://github.community/t/job-service-command/16477
+    # https://rohanverma.net/blog/2021/02/09/minio-github-actions/
+    - name: Setup MinIO
+      run: >
+        docker run
+        --detach
+        -p 9000:9000
+        -e 'MINIO_ROOT_USER=AKIAIOSFODNN7EXAMPLE'
+        -e 'MINIO_ROOT_PASSWORD=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
+        minio/minio server /data
+    - name: Run tests
+      run: |
+        go test ./...
+      env:
+        PG2S3_PG_CONNECTION_URI: 'postgresql://postgres:postgres@localhost:5432/postgres'
+        PG2S3_S3_ENDPOINT: 'localhost:9000'
+        PG2S3_S3_ACCESS_KEY_ID: 'AKIAIOSFODNN7EXAMPLE'
+        PG2S3_S3_SECRET_ACCESS_KEY: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
+        PG2S3_BUCKET_NAME: 'pg2s3'
+        PG2S3_BACKUP_PREFIX: 'pg2s3'

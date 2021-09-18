@@ -8,15 +8,14 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
+	"sort"
 	"strings"
 	"time"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
-
-// pg_dump -Fc -f dvdrental.backup $PG2S3_DATABASE_URL
-// pg_restore testdata/dvdrental.backup -d $PG2S3_DATABASE_URL
 
 func RequireEnv(name string) string {
 	value := os.Getenv(name)
@@ -26,6 +25,8 @@ func RequireEnv(name string) string {
 	return value
 }
 
+// Backup naming scheme:
+// <prefix>_<timestamp>.<ext>[.<ext>]*
 func GenerateBackupName(prefix string) string {
 	timestamp := time.Now().Format(time.RFC3339)
 	return fmt.Sprintf("%s_%s.backup", prefix, timestamp)
@@ -35,22 +36,82 @@ func GenerateBackupPath(name string) string {
 	return filepath.Join(os.TempDir(), name)
 }
 
+// Parse timestamp by splitting on "_" or "." and parsing the 2nd element
+func ParseBackupTimestamp(name string) (time.Time, error) {
+	delimiters := regexp.MustCompile(`(_|\.)`)
+
+	timestamp := delimiters.Split(name, -1)[1]
+	t, err := time.Parse(time.RFC3339, timestamp)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	return t, nil
+}
+
+// sort backups in descending order (newest first, oldest last)
+func SortBackups(backups []string) ([]string, error) {
+	// pre-check backups for invalid naming
+	for _, backup := range backups {
+		_, err := ParseBackupTimestamp(backup)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// make a copy before sorting
+	sorted := make([]string, len(backups))
+	copy(sorted, backups)
+
+	// sort the backups by timestamp
+	sort.SliceStable(sorted, func (i, j int) bool {
+		tI, _ := ParseBackupTimestamp(sorted[i])
+		tJ, _ := ParseBackupTimestamp(sorted[j])
+		return tI.After(tJ)
+	})
+
+	return sorted, nil
+}
+
 type PG2S3 struct {
-	DBConnectionURI   string
+	PGConnectionURI   string
 	S3Endpoint        string
 	S3AccessKeyID     string
 	S3SecretAccessKey string
 }
 
+// pg_dump -Fc -f dvdrental.backup $PG2S3_DATABASE_URL
 func (pg2s3 *PG2S3) CreateBackup(path string) error {
-
 	args := []string{
 		"-Fc",
 		"-f",
 		path,
-		pg2s3.DBConnectionURI,
+		pg2s3.PGConnectionURI,
 	}
 	cmd := exec.Command("pg_dump", args...)
+
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+
+	err := cmd.Run()
+	if err != nil {
+		log.Print(out.String())
+		return err
+	}
+
+	return nil
+}
+
+// pg_restore testdata/dvdrental.backup -d $PG2S3_DATABASE_URL
+func (pg2s3 *PG2S3) RestoreBackup(path string) error {
+	args := []string{
+		path,
+		"-c",
+		"-d",
+		pg2s3.PGConnectionURI,
+	}
+	cmd := exec.Command("pg_restore", args...)
 
 	var out bytes.Buffer
 	cmd.Stdout = &out
@@ -145,8 +206,10 @@ func (pg2s3 *PG2S3) UploadBackup(bucket, name, path string) error {
 }
 
 func main() {
+	// TODO: check argv[1] for "backup" or "restore"
+
 	pg2s3 := PG2S3{
-		DBConnectionURI:   RequireEnv("PG2S3_DB_CONNECTION_URI"),
+		PGConnectionURI:   RequireEnv("PG2S3_PG_CONNECTION_URI"),
 		S3Endpoint:        RequireEnv("PG2S3_S3_ENDPOINT"),
 		S3AccessKeyID:     RequireEnv("PG2S3_S3_ACCESS_KEY_ID"),
 		S3SecretAccessKey: RequireEnv("PG2S3_S3_SECRET_ACCESS_KEY"),
@@ -154,6 +217,8 @@ func main() {
 
 	bucket := RequireEnv("PG2S3_BUCKET_NAME")
 	prefix := RequireEnv("PG2S3_BACKUP_PREFIX")
+
+	pg2s3.RestoreBackup("testdata/dvdrental.backup")
 
 	// ensure bucket exists first to verify connection to S3
 	log.Printf("ensuring bucket exists: %s\n", bucket)

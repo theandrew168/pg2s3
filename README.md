@@ -4,7 +4,7 @@ Simple PostgreSQL backups to S3-compatible storage
 ## Install / Setup
 These vars are required to run pg2s3:
 ```
-PG2S3_DB_CONNECTION_URI
+PG2S3_PG_CONNECTION_URI
 PG2S3_S3_ENDPOINT
 PG2S3_S3_ACCESS_KEY_ID
 PG2S3_S3_SECRET_ACCESS_KEY
