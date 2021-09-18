@@ -217,8 +217,8 @@ func main() {
 
 	bucket := RequireEnv("PG2S3_BUCKET_NAME")
 	prefix := RequireEnv("PG2S3_BACKUP_PREFIX")
-
-	pg2s3.RestoreBackup("testdata/dvdrental.backup")
+	retention := RequireEnv("PG2S3_BACKUP_RETENTION")
+	log.Println(retention)
 
 	// ensure bucket exists first to verify connection to S3
 	log.Printf("ensuring bucket exists: %s\n", bucket)
