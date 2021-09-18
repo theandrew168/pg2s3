@@ -8,11 +8,15 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
+
+// pg_dump -Fc -f dvdrental.backup $PG2S3_DATABASE_URL
+// pg_restore testdata/dvdrental.backup -d $PG2S3_DATABASE_URL
 
 func RequireEnv(name string) string {
 	value := os.Getenv(name)
@@ -60,12 +64,21 @@ func main() {
 	log.Println(secretAccessKey)
 	log.Println(bucketName)
 
+	// disable HTTPS requirement for local development / testing
+	secure := true
+	if strings.Contains(endpoint, "localhost") {
+		secure = false
+	}
+	if strings.Contains(endpoint, "127.0.0.1") {
+		secure = false
+	}
+
 	objectName := GenerateBackupName(backupPrefix)
 	filePath := filepath.Join(os.TempDir(), objectName)
 
 	client, err := minio.New(endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
-		Secure: true,
+		Secure: secure,
 	})
 	if err != nil {
 		log.Fatal(err)
