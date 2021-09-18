@@ -7,34 +7,12 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres
-        env:
-          POSTGRES_PASSWORD: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-      minio:
-        image: bitnami/minio
-        env:
-          MINIO_ROOT_USER: AKIAIOSFODNN7EXAMPLE
-          MINIO_ROOT_PASSWORD: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
-        ports:
-          - 9000:9000
-#        options: >-
-#          --health-cmd "curl -f http://localhost:9000/minio/health/live"
-#          --health-interval 10s
-#          --health-timeout 5s
-#          --health-retries 5
-
     steps:
     - name: Checkout source
       uses: actions/checkout@v2
+    - name: Start containers
+      run: |
+        docker compose up -d
     - name: Setup Go
       uses: actions/setup-go@v2
       with:
