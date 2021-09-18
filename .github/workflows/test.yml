@@ -12,13 +12,25 @@ jobs:
         image: postgres
         env:
           POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      minio:
+        image: bitnami/minio
+        env:
+          MINIO_ROOT_USER: AKIAIOSFODNN7EXAMPLE
+          MINIO_ROOT_PASSWORD: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
         ports:
-          - 5432:5432
+          - 9000:9000
+        options: >-
+          --health-cmd curl -f http://localhost:9000/minio/health/live
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
     - name: Checkout source
@@ -27,19 +39,6 @@ jobs:
       uses: actions/setup-go@v2
       with:
         go-version: 1.17
-    # have to manually setup the container until GHA allows custom commands:
-    # https://stackoverflow.com/questions/64031598/creating-a-minios3-container-inside-a-github-actions-yml-file
-    # https://stackoverflow.com/questions/60849745/how-can-i-run-a-command-in-github-action-service-containers
-    # https://github.community/t/job-service-command/16477
-    # https://rohanverma.net/blog/2021/02/09/minio-github-actions/
-    - name: Setup MinIO
-      run: >
-        docker run
-        --detach
-        -p 9000:9000
-        -e 'MINIO_ROOT_USER=AKIAIOSFODNN7EXAMPLE'
-        -e 'MINIO_ROOT_PASSWORD=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
-        minio/minio server /data
     - name: Run tests
       run: |
         go test ./...
