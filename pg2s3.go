@@ -19,9 +19,13 @@ import (
 
 // Backup naming scheme:
 // <prefix>_<timestamp>.<ext>[.<ext>]*
-func GenerateBackupName(prefix string) string {
+func GenerateBackupName(prefix string) (string, error) {
+	if strings.ContainsAny(prefix, "_.") {
+		return "", fmt.Errorf("prefix must not contain '_' or '.'")
+	}
+
 	timestamp := time.Now().Format(time.RFC3339)
-	return fmt.Sprintf("%s_%s.backup", prefix, timestamp)
+	return fmt.Sprintf("%s_%s.backup", prefix, timestamp), nil
 }
 
 func GenerateBackupPath(name string) string {
@@ -65,20 +69,32 @@ func SortBackups(backups []string) ([]string, error) {
 	return sorted, nil
 }
 
-type PG2S3 struct {
-	PGConnectionURI   string
-	S3Endpoint        string
-	S3AccessKeyID     string
-	S3SecretAccessKey string
+type Client struct {
+	pgConnectionURI   string
+	s3Endpoint        string
+	s3AccessKeyID     string
+	s3SecretAccessKey string
+	s3BucketName      string
+}
+
+func New(pgConnectionURI, s3Endpoint, s3AccessKeyID, s3SecretAccessKey, s3BucketName string) (*Client, error) {
+	client := Client{
+		pgConnectionURI:   pgConnectionURI,
+		s3Endpoint:        s3Endpoint,
+		s3AccessKeyID:     s3AccessKeyID,
+		s3SecretAccessKey: s3SecretAccessKey,
+		s3BucketName:      s3BucketName,
+	}
+	return &client, nil
 }
 
 // pg_dump -Fc -f dvdrental.backup $PG2S3_DATABASE_URL
-func (pg2s3 *PG2S3) CreateBackup(path string) error {
+func (c *Client) CreateBackup(path string) error {
 	args := []string{
 		"-Fc",
 		"-f",
 		path,
-		pg2s3.PGConnectionURI,
+		c.pgConnectionURI,
 	}
 	cmd := exec.Command("pg_dump", args...)
 
@@ -96,10 +112,10 @@ func (pg2s3 *PG2S3) CreateBackup(path string) error {
 }
 
 // pg_restore -d $PG2S3_DATABASE_URL testdata/dvdrental.backup
-func (pg2s3 *PG2S3) RestoreBackup(path string) error {
+func (c *Client) RestoreBackup(path string) error {
 	args := []string{
 		"-d",
-		pg2s3.PGConnectionURI,
+		c.pgConnectionURI,
 		path,
 	}
 	cmd := exec.Command("pg_restore", args...)
@@ -117,22 +133,22 @@ func (pg2s3 *PG2S3) RestoreBackup(path string) error {
 	return nil
 }
 
-func (pg2s3 *PG2S3) UploadBackup(bucket, name, path string) error {
+func (c *Client) UploadBackup(path, name string) error {
 	creds := credentials.NewStaticV4(
-		pg2s3.S3AccessKeyID,
-		pg2s3.S3SecretAccessKey,
+		c.s3AccessKeyID,
+		c.s3SecretAccessKey,
 		"")
 
 	// disable HTTPS requirement for local development / testing
 	secure := true
-	if strings.Contains(pg2s3.S3Endpoint, "localhost") {
+	if strings.Contains(c.s3Endpoint, "localhost") {
 		secure = false
 	}
-	if strings.Contains(pg2s3.S3Endpoint, "127.0.0.1") {
+	if strings.Contains(c.s3Endpoint, "127.0.0.1") {
 		secure = false
 	}
 
-	client, err := minio.New(pg2s3.S3Endpoint, &minio.Options{
+	client, err := minio.New(c.s3Endpoint, &minio.Options{
 		Creds:  creds,
 		Secure: secure,
 	})
@@ -141,8 +157,9 @@ func (pg2s3 *PG2S3) UploadBackup(bucket, name, path string) error {
 	}
 
 	ctx := context.Background()
-	_, err = client.FPutObject(ctx,
-		bucket,
+	_, err = client.FPutObject(
+		ctx,
+		c.s3BucketName,
 		name,
 		path,
 		minio.PutObjectOptions{})
