@@ -214,6 +214,42 @@ func (c *Client) DownloadBackup(name, path string) error {
 	return nil
 }
 
+func (c *Client) DeleteBackup(name string) error {
+	creds := credentials.NewStaticV4(
+		c.s3AccessKeyID,
+		c.s3SecretAccessKey,
+		"")
+
+	// disable HTTPS requirement for local development / testing
+	secure := true
+	if strings.Contains(c.s3Endpoint, "localhost") {
+		secure = false
+	}
+	if strings.Contains(c.s3Endpoint, "127.0.0.1") {
+		secure = false
+	}
+
+	client, err := minio.New(c.s3Endpoint, &minio.Options{
+		Creds:  creds,
+		Secure: secure,
+	})
+	if err != nil {
+		return err
+	}
+
+	ctx := context.Background()
+	err = client.RemoveObject(
+		ctx,
+		c.s3BucketName,
+		name,
+		minio.RemoveObjectOptions{})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // Parse timestamp by splitting on "_" or "." and parsing the 2nd element
 func parseBackupTimestamp(name string) (time.Time, error) {
 	delimiters := regexp.MustCompile(`(_|\.)`)

@@ -13,6 +13,8 @@ import (
 )
 
 func main() {
+	log.SetFlags(0)
+
 	client, err := pg2s3.New(
 		requireEnv("PG2S3_PG_CONNECTION_URI"),
 		requireEnv("PG2S3_S3_ENDPOINT"),
@@ -37,17 +39,17 @@ func main() {
 	cmd := os.Args[1]
 	switch cmd {
 	case "backup":
-		err = backup(client, prefix, retention)
+		err = backup(client, prefix)
 		if err != nil {
 			log.Fatalln(err)
 		}
 	case "restore":
-		err = restore(client, prefix, retention)
+		err = restore(client)
 		if err != nil {
 			log.Fatalln(err)
 		}
 	case "prune":
-		err = prune(client, prefix, retention)
+		err = prune(client, retention)
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -81,7 +83,7 @@ func confirm(message string) bool {
 	}
 }
 
-func backup(client *pg2s3.Client, prefix string, retention int) error {
+func backup(client *pg2s3.Client, prefix string) error {
 	// generate name for backup
 	name, err := pg2s3.GenerateBackupName(prefix)
 	if err != nil {
@@ -107,7 +109,7 @@ func backup(client *pg2s3.Client, prefix string, retention int) error {
 	return nil
 }
 
-func restore(client *pg2s3.Client, prefix string, retention int) error {
+func restore(client *pg2s3.Client) error {
 	// list all backups
 	backups, err := client.ListBackups()
 	if err != nil {
@@ -146,9 +148,28 @@ func restore(client *pg2s3.Client, prefix string, retention int) error {
 	return nil
 }
 
-func prune(client *pg2s3.Client, prefix string, retention int) error {
-	// TODO: list all backups
-	// TODO: determine old backups to prune
-	// TODO: prune old backups
+func prune(client *pg2s3.Client, retention int) error {
+	// list all backups
+	backups, err := client.ListBackups()
+	if err != nil {
+		return err
+	}
+
+	// check if backup count exceeds retention
+	if len(backups) < retention {
+		return nil
+	}
+
+	// determine expired backups to prune
+	expired := backups[retention:]
+
+	// prune old backups
+	for _, backup := range expired {
+		err = client.DeleteBackup(backup)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
