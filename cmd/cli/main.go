@@ -1,9 +1,13 @@
 package main
 
 import (
+	"bufio"
+	"errors"
+	"fmt"
 	"log"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/theandrew168/pg2s3"
 )
@@ -60,6 +64,23 @@ func requireEnv(name string) string {
 	return value
 }
 
+func confirm(message string) bool {
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Printf("%s [y/n]: ", message)
+
+	response, err := reader.ReadString('\n')
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	response = strings.ToLower(strings.TrimSpace(response))
+	if response == "y" || response == "yes" {
+		return true
+	} else {
+		return false
+	}
+}
+
 func backup(client *pg2s3.Client, prefix string, retention int) error {
 	// generate name for backup
 	name, err := pg2s3.GenerateBackupName(prefix)
@@ -75,15 +96,10 @@ func backup(client *pg2s3.Client, prefix string, retention int) error {
 	if err != nil {
 		return err
 	}
+	defer os.Remove(path)
 
 	// upload backup
 	err = client.UploadBackup(path, name)
-	if err != nil {
-		return err
-	}
-
-	// delete backup (from local filesystem)
-	err = os.Remove(path)
 	if err != nil {
 		return err
 	}
@@ -92,20 +108,41 @@ func backup(client *pg2s3.Client, prefix string, retention int) error {
 }
 
 func restore(client *pg2s3.Client, prefix string, retention int) error {
-	// TODO: list all backups
+	// list all backups
 	backups, err := client.ListBackups()
 	if err != nil {
 		return err
 	}
-	for _, backup := range backups {
-		log.Println(backup)
+
+	if len(backups) == 0 {
+		return errors.New("no backups present to restore")
 	}
 
-	// TODO: determine most recent backup
-	// TODO: generate path for backup
-	// TODO: download backup
-	// TODO: restore backup
-	// TODO: delete backup (from local filesystem)
+	// determine latest backup
+	latest := backups[0]
+
+	// generate path for backup
+	path := pg2s3.GenerateBackupPath(latest)
+
+	// download backup
+	err = client.DownloadBackup(latest, path)
+	if err != nil {
+		return err
+	}
+	defer os.Remove(path)
+
+	// confirm restore before applying
+	message := fmt.Sprintf("restore backup %q", latest)
+	if !confirm(message) {
+		return nil
+	}
+
+	// restore backup
+	err = client.RestoreBackup(path)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

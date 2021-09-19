@@ -1,7 +1,9 @@
 package pg2s3
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -19,7 +21,7 @@ import (
 // <prefix>_<timestamp>.<ext>[.<ext>]*
 func GenerateBackupName(prefix string) (string, error) {
 	if strings.ContainsAny(prefix, "_.") {
-		return "", fmt.Errorf("prefix must not contain '_' or '.'")
+		return "", errors.New("prefix must not contain '_' or '.'")
 	}
 
 	timestamp := time.Now().Format(time.RFC3339)
@@ -59,26 +61,35 @@ func (c *Client) CreateBackup(path string) error {
 	}
 	cmd := exec.Command("pg_dump", args...)
 
+	var capture bytes.Buffer
+	cmd.Stdout = &capture
+	cmd.Stderr = &capture
+
 	err := cmd.Run()
 	if err != nil {
-		return err
+		return errors.New(capture.String())
 	}
 
 	return nil
 }
 
-// pg_restore -d $PG2S3_DATABASE_URL testdata/dvdrental.backup
+// pg_restore -c -d $PG2S3_DATABASE_URL testdata/dvdrental.backup
 func (c *Client) RestoreBackup(path string) error {
 	args := []string{
+		"-c",
 		"-d",
 		c.pgConnectionURI,
 		path,
 	}
 	cmd := exec.Command("pg_restore", args...)
 
+	var capture bytes.Buffer
+	cmd.Stdout = &capture
+	cmd.Stderr = &capture
+
 	err := cmd.Run()
 	if err != nil {
-		return err
+		return errors.New(capture.String())
 	}
 
 	return nil
