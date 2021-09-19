@@ -5,6 +5,18 @@ import (
 	"testing"
 )
 
+func TestBackup(t *testing.T) {
+
+}
+
+func TestRestore(t *testing.T) {
+
+}
+
+func TestPrune(t *testing.T) {
+
+}
+
 func TestGenerateBackupName(t *testing.T) {
 	prefix := "pg2s3"
 	suffix := ".backup"
@@ -17,15 +29,3 @@ func TestGenerateBackupName(t *testing.T) {
 		t.Errorf("name %q is missing suffix %q", name, suffix)
 	}
 }
-
-//func TestGenerateBackupPath(t *testing.T) {
-//	prefix := "pg2s3"
-//	name := GenerateBackupName(prefix)
-//	path := GenerateBackupPath(name)
-//
-//	pathDir := filepath.Dir(path)
-//	tempDir := os.TempDir()
-//	if pathDir != tempDir {
-//		t.Errorf("path %q is not within temp dir %q", path, tempDir)
-//	}
-//}
