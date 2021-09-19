@@ -12,7 +12,7 @@ The following environment variables are required to run pg2s3:
 | `PG2S3_S3_SECRET_ACCESS_KEY` | S3-compatible storage secret access key |
 | `PG2S3_S3_BUCKET_NAME`       | S3-compatible storage bucket name |
 | `PG2S3_BACKUP_PREFIX`        | Prefix attached to the name of each backup |
-| `PG2S3_BACKUP_RETENTION`     | Number of backups to retain (after pruning) |
+| `PG2S3_BACKUP_RETENTION`     | Number of backups to retain after pruning |
 
 ## Usage
 The pg2s3 command-line tool offers three commands:
