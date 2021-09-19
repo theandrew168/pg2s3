@@ -96,24 +96,7 @@ func (c *Client) RestoreBackup(path string) error {
 }
 
 func (c *Client) ListBackups() ([]string, error) {
-	creds := credentials.NewStaticV4(
-		c.s3AccessKeyID,
-		c.s3SecretAccessKey,
-		"")
-
-	// disable HTTPS requirement for local development / testing
-	secure := true
-	if strings.Contains(c.s3Endpoint, "localhost") {
-		secure = false
-	}
-	if strings.Contains(c.s3Endpoint, "127.0.0.1") {
-		secure = false
-	}
-
-	client, err := minio.New(c.s3Endpoint, &minio.Options{
-		Creds:  creds,
-		Secure: secure,
-	})
+	client, err := c.connect()
 	if err != nil {
 		return nil, err
 	}
@@ -141,24 +124,7 @@ func (c *Client) ListBackups() ([]string, error) {
 }
 
 func (c *Client) UploadBackup(path, name string) error {
-	creds := credentials.NewStaticV4(
-		c.s3AccessKeyID,
-		c.s3SecretAccessKey,
-		"")
-
-	// disable HTTPS requirement for local development / testing
-	secure := true
-	if strings.Contains(c.s3Endpoint, "localhost") {
-		secure = false
-	}
-	if strings.Contains(c.s3Endpoint, "127.0.0.1") {
-		secure = false
-	}
-
-	client, err := minio.New(c.s3Endpoint, &minio.Options{
-		Creds:  creds,
-		Secure: secure,
-	})
+	client, err := c.connect()
 	if err != nil {
 		return err
 	}
@@ -178,24 +144,7 @@ func (c *Client) UploadBackup(path, name string) error {
 }
 
 func (c *Client) DownloadBackup(name, path string) error {
-	creds := credentials.NewStaticV4(
-		c.s3AccessKeyID,
-		c.s3SecretAccessKey,
-		"")
-
-	// disable HTTPS requirement for local development / testing
-	secure := true
-	if strings.Contains(c.s3Endpoint, "localhost") {
-		secure = false
-	}
-	if strings.Contains(c.s3Endpoint, "127.0.0.1") {
-		secure = false
-	}
-
-	client, err := minio.New(c.s3Endpoint, &minio.Options{
-		Creds:  creds,
-		Secure: secure,
-	})
+	client, err := c.connect()
 	if err != nil {
 		return err
 	}
@@ -215,6 +164,25 @@ func (c *Client) DownloadBackup(name, path string) error {
 }
 
 func (c *Client) DeleteBackup(name string) error {
+	client, err := c.connect()
+	if err != nil {
+		return err
+	}
+
+	ctx := context.Background()
+	err = client.RemoveObject(
+		ctx,
+		c.s3BucketName,
+		name,
+		minio.RemoveObjectOptions{})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Client) connect() (*minio.Client, error) {
 	creds := credentials.NewStaticV4(
 		c.s3AccessKeyID,
 		c.s3SecretAccessKey,
@@ -234,20 +202,10 @@ func (c *Client) DeleteBackup(name string) error {
 		Secure: secure,
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	ctx := context.Background()
-	err = client.RemoveObject(
-		ctx,
-		c.s3BucketName,
-		name,
-		minio.RemoveObjectOptions{})
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return client, nil
 }
 
 // Parse timestamp by splitting on "_" or "." and parsing the 2nd element
