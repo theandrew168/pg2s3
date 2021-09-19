@@ -11,14 +11,13 @@ The following environment variables are required to run pg2s3:
 | `PG2S3_S3_ACCESS_KEY_ID`     | S3-compatible storage access key ID |
 | `PG2S3_S3_SECRET_ACCESS_KEY` | S3-compatible storage secret access key |
 | `PG2S3_S3_BUCKET_NAME`       | S3-compatible storage bucket name |
-| `PG2S3_ENCRYPTION_KEY`       | Key for symmetric encryption / decryption of backups |
 | `PG2S3_BACKUP_PREFIX`        | Prefix attached to the name of each backup |
 | `PG2S3_BACKUP_RETENTION`     | Number of backups to retain (after pruning) |
 
 ## Usage
 The pg2s3 command-line tool offers three commands:
-* `pg2s3 backup` - Create and encrypt a new backup, upload to S3, and prune old backups
-* `pg2s3 restore` - Download and decrypt the latest backup and restore to PG
+* `pg2s3 backup` - Create a new backup from PG and upload to S3
+* `pg2s3 restore` - Download the latest backup from S3 and restore to PG
 * `pg2s3 prune` - Prune old backups from S3
 
 ## Local Development

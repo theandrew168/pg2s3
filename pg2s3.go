@@ -30,43 +30,6 @@ func GenerateBackupPath(name string) string {
 	return filepath.Join(os.TempDir(), name)
 }
 
-// Parse timestamp by splitting on "_" or "." and parsing the 2nd element
-func ParseBackupTimestamp(name string) (time.Time, error) {
-	delimiters := regexp.MustCompile(`(_|\.)`)
-
-	timestamp := delimiters.Split(name, -1)[1]
-	t, err := time.Parse(time.RFC3339, timestamp)
-	if err != nil {
-		return time.Time{}, err
-	}
-
-	return t, nil
-}
-
-// sort backups in descending order (newest first, oldest last)
-func SortBackups(backups []string) ([]string, error) {
-	// pre-check backups for invalid naming
-	for _, backup := range backups {
-		_, err := ParseBackupTimestamp(backup)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// make a copy before sorting
-	sorted := make([]string, len(backups))
-	copy(sorted, backups)
-
-	// sort the backups by timestamp
-	sort.SliceStable(sorted, func (i, j int) bool {
-		tI, _ := ParseBackupTimestamp(sorted[i])
-		tJ, _ := ParseBackupTimestamp(sorted[j])
-		return tI.After(tJ)
-	})
-
-	return sorted, nil
-}
-
 type Client struct {
 	pgConnectionURI   string
 	s3Endpoint        string
@@ -121,6 +84,51 @@ func (c *Client) RestoreBackup(path string) error {
 	return nil
 }
 
+func (c *Client) ListBackups() ([]string, error) {
+	creds := credentials.NewStaticV4(
+		c.s3AccessKeyID,
+		c.s3SecretAccessKey,
+		"")
+
+	// disable HTTPS requirement for local development / testing
+	secure := true
+	if strings.Contains(c.s3Endpoint, "localhost") {
+		secure = false
+	}
+	if strings.Contains(c.s3Endpoint, "127.0.0.1") {
+		secure = false
+	}
+
+	client, err := minio.New(c.s3Endpoint, &minio.Options{
+		Creds:  creds,
+		Secure: secure,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	ctx := context.Background()
+	objects := client.ListObjects(
+		ctx,
+		c.s3BucketName,
+		minio.ListObjectsOptions{})
+
+	var backups []string
+	for object := range objects {
+		if object.Err != nil {
+			return nil, object.Err
+		}
+		backups = append(backups, object.Key)
+	}
+
+	err = sortBackups(backups)
+	if err != nil {
+		return nil, err
+	}
+
+	return backups, nil
+}
+
 func (c *Client) UploadBackup(path, name string) error {
 	creds := credentials.NewStaticV4(
 		c.s3AccessKeyID,
@@ -154,6 +162,76 @@ func (c *Client) UploadBackup(path, name string) error {
 	if err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func (c *Client) DownloadBackup(name, path string) error {
+	creds := credentials.NewStaticV4(
+		c.s3AccessKeyID,
+		c.s3SecretAccessKey,
+		"")
+
+	// disable HTTPS requirement for local development / testing
+	secure := true
+	if strings.Contains(c.s3Endpoint, "localhost") {
+		secure = false
+	}
+	if strings.Contains(c.s3Endpoint, "127.0.0.1") {
+		secure = false
+	}
+
+	client, err := minio.New(c.s3Endpoint, &minio.Options{
+		Creds:  creds,
+		Secure: secure,
+	})
+	if err != nil {
+		return err
+	}
+
+	ctx := context.Background()
+	err = client.FGetObject(
+		ctx,
+		c.s3BucketName,
+		name,
+		path,
+		minio.GetObjectOptions{})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Parse timestamp by splitting on "_" or "." and parsing the 2nd element
+func parseBackupTimestamp(name string) (time.Time, error) {
+	delimiters := regexp.MustCompile(`(_|\.)`)
+
+	timestamp := delimiters.Split(name, -1)[1]
+	t, err := time.Parse(time.RFC3339, timestamp)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	return t, nil
+}
+
+// sort backups in descending order (newest first, oldest last)
+func sortBackups(backups []string) error {
+	// pre-check backups for invalid naming
+	for _, backup := range backups {
+		_, err := parseBackupTimestamp(backup)
+		if err != nil {
+			return err
+		}
+	}
+
+	// sort the backups by timestamp
+	sort.SliceStable(backups, func (i, j int) bool {
+		tI, _ := parseBackupTimestamp(backups[i])
+		tJ, _ := parseBackupTimestamp(backups[j])
+		return tI.After(tJ)
+	})
 
 	return nil
 }
