@@ -1,4 +1,4 @@
-package main
+package pg2s3
 
 import (
 	"bytes"
@@ -16,14 +16,6 @@ import (
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
-
-func RequireEnv(name string) string {
-	value := os.Getenv(name)
-	if value == "" {
-		log.Fatalf("missing required env var: %s\n", name)
-	}
-	return value
-}
 
 // Backup naming scheme:
 // <prefix>_<timestamp>.<ext>[.<ext>]*
@@ -103,13 +95,12 @@ func (pg2s3 *PG2S3) CreateBackup(path string) error {
 	return nil
 }
 
-// pg_restore testdata/dvdrental.backup -d $PG2S3_DATABASE_URL
+// pg_restore -d $PG2S3_DATABASE_URL testdata/dvdrental.backup
 func (pg2s3 *PG2S3) RestoreBackup(path string) error {
 	args := []string{
-		path,
-		"-c",
 		"-d",
 		pg2s3.PGConnectionURI,
+		path,
 	}
 	cmd := exec.Command("pg_restore", args...)
 
@@ -121,49 +112,6 @@ func (pg2s3 *PG2S3) RestoreBackup(path string) error {
 	if err != nil {
 		log.Print(out.String())
 		return err
-	}
-
-	return nil
-}
-
-func (pg2s3 *PG2S3) EnsureBucketExists(bucket string) error {
-
-	creds := credentials.NewStaticV4(
-		pg2s3.S3AccessKeyID,
-		pg2s3.S3SecretAccessKey,
-		"")
-
-	// disable HTTPS requirement for local development / testing
-	secure := true
-	if strings.Contains(pg2s3.S3Endpoint, "localhost") {
-		secure = false
-	}
-	if strings.Contains(pg2s3.S3Endpoint, "127.0.0.1") {
-		secure = false
-	}
-
-	client, err := minio.New(pg2s3.S3Endpoint, &minio.Options{
-		Creds:  creds,
-		Secure: secure,
-	})
-	if err != nil {
-		return err
-	}
-
-	ctx := context.Background()
-	exists, err := client.BucketExists(ctx, bucket)
-	if err != nil {
-		return err
-	}
-
-	if !exists {
-		err = client.MakeBucket(
-			ctx,
-			bucket,
-			minio.MakeBucketOptions{})
-		if err != nil {
-			return err
-		}
 	}
 
 	return nil
@@ -203,49 +151,4 @@ func (pg2s3 *PG2S3) UploadBackup(bucket, name, path string) error {
 	}
 
 	return nil
-}
-
-func main() {
-	// TODO: check argv[1] for "backup" or "restore"
-
-	pg2s3 := PG2S3{
-		PGConnectionURI:   RequireEnv("PG2S3_PG_CONNECTION_URI"),
-		S3Endpoint:        RequireEnv("PG2S3_S3_ENDPOINT"),
-		S3AccessKeyID:     RequireEnv("PG2S3_S3_ACCESS_KEY_ID"),
-		S3SecretAccessKey: RequireEnv("PG2S3_S3_SECRET_ACCESS_KEY"),
-	}
-
-	bucket := RequireEnv("PG2S3_BUCKET_NAME")
-	prefix := RequireEnv("PG2S3_BACKUP_PREFIX")
-	retention := RequireEnv("PG2S3_BACKUP_RETENTION")
-	log.Println(retention)
-
-	// ensure bucket exists first to verify connection to S3
-	log.Printf("ensuring bucket exists: %s\n", bucket)
-	err := pg2s3.EnsureBucketExists(bucket)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	name := GenerateBackupName(prefix)
-	path := GenerateBackupPath(name)
-
-	log.Printf("creating backup: %s\n", name)
-	err = pg2s3.CreateBackup(path)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// TODO: encrypt the backup (vanilla AES256 or AES256 + HMAC SHA-512?)
-	// https://stackoverflow.com/questions/49546567/how-do-you-encrypt-large-files-byte-streams-in-go
-	// https://github.com/odeke-em/drive/wiki/End-to-End-Encryption
-
-	log.Printf("uploading backup: %s\n", name)
-	err = pg2s3.UploadBackup(bucket, name, path)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// TODO: list all backups
-	// TODO: prune old backups
 }
