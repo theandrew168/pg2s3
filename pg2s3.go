@@ -1,10 +1,8 @@
 package pg2s3
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -98,13 +96,8 @@ func (c *Client) CreateBackup(path string) error {
 	}
 	cmd := exec.Command("pg_dump", args...)
 
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &out
-
 	err := cmd.Run()
 	if err != nil {
-		log.Print(out.String())
 		return err
 	}
 
@@ -120,13 +113,8 @@ func (c *Client) RestoreBackup(path string) error {
 	}
 	cmd := exec.Command("pg_restore", args...)
 
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &out
-
 	err := cmd.Run()
 	if err != nil {
-		log.Print(out.String())
 		return err
 	}
 
