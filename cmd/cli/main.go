@@ -36,6 +36,8 @@ func main() {
 		log.Fatalln(usage)
 	}
 
+	// TODO: verify connections to PG and S3
+
 	cmd := os.Args[1]
 	switch cmd {
 	case "backup":

@@ -1,7 +1,14 @@
 # pg2s3
 Simple PostgreSQL backups to S3-compatible storage
 
-## Install / Setup
+## Overview
+what this project is / is not  
+things left out: other DBs, other storage, scheduling  
+this doesn't create the S3 bucket cuz liability  
+talk about retention count (not based on date or size, just count)  
+talk about deployment: cron, systemd timer, etc  
+
+## Configuration
 The following environment variables are required to run pg2s3:
 
 | Variable                     | Description |
