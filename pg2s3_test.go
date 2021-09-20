@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/minio/minio-go/v7"
@@ -51,6 +52,38 @@ func createBucket(s3Endpoint, s3AccessKeyID, s3SecretAccessKey, s3BucketName str
 	}
 
 	return nil
+}
+
+// TODO: test for missing pg_dump / pg_restore commands?
+
+func TestGenerateBackupName(t *testing.T) {
+	prefix := "pg2s3"
+	suffix := ".backup"
+	name, err := pg2s3.GenerateBackupName(prefix)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// success cases
+	if !strings.HasPrefix(name, prefix) {
+		t.Errorf("name %q is missing prefix %q", name, prefix)
+	}
+	if !strings.HasSuffix(name, suffix) {
+		t.Errorf("name %q is missing suffix %q", name, suffix)
+	}
+
+	// error cases
+	prefix = "foo_bar"
+	_, err = pg2s3.GenerateBackupName(prefix)
+	if err == nil {
+		t.Errorf("prefix %q should be invalid", prefix)
+	}
+
+	prefix = "foo.bar"
+	_, err = pg2s3.GenerateBackupName(prefix)
+	if err == nil {
+		t.Errorf("prefix %q should be invalid", prefix)
+	}
 }
 
 func TestBackup(t *testing.T) {

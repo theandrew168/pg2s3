@@ -10,6 +10,13 @@ That being said, some features are intentionally left out of scope for this proj
 For example, PostgreSQL is the only supported database and S3 is the only supported storage method.
 The scheduling of periodic backups is also left out: rely on tools such as [cron](https://wiki.archlinux.org/title/cron) or [systemd timers](https://wiki.archlinux.org/title/Systemd/Timers) to handle the timing and frequency of programmatic backups.
 
+## Install
+The pg2s3 tool is distributed as a single, static binary.
+Check the [releases page](https://github.com/theandrew168/pg2s3/releases) to find and download the latest version.
+Additionally, the environment where pg2s3 is executed must have `pg_dump` and `pg_restore` installed.
+These tools are part of the collection of [PostgreSQL Client Applications](https://www.postgresql.org/docs/12/reference-client.html).
+On an Ubuntu server, these tools are contained within the package `postgresql-client-<version>` based on the major version of PostgreSQL being used.
+
 ## Configuration
 Configuration for pg2s3 is handle exclusively through environment variables.
 This leaves out the need for config files, command line parameters, and the precedence rules that exist between them.
