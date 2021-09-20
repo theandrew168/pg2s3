@@ -3,22 +3,22 @@ Simple PostgreSQL backups to S3-compatible storage
 
 ## Overview
 This project strives to be simple and reliable backup solution for [PostgreSQL](https://www.postgresql.org/) databases.
-In general, this code dumps a given database and uploads it to an S3-compatible storage bucket.
+In general, pg2s3 dumps a given database and uploads it to an S3-compatible storage bucket.
 However, there is a bit more nuance involved in bookkeeping, restoration, and pruning.
 
 That being said, some features are intentionally left out of scope for this project.
 For example, PostgreSQL is the only supported database and S3 is the only supported storage method.
 The scheduling of periodic backups is also left out: rely on tools such as [cron](https://wiki.archlinux.org/title/cron) or [systemd timers](https://wiki.archlinux.org/title/Systemd/Timers) to handle the timing and frequency of programmatic backups.
 
-
-talk about retention count (not based on date or size, just count)  
-
 ## Configuration
 Configuration for pg2s3 is handle exclusively through environment variables.
 This leaves out the need for config files, command line parameters, and the precedence rules that exist between them.
 
-Note that the S3 bucket noted by `PG2S3_S3_BUCKET_NAME` must be created outside of this tool.
+Note that the S3 bucket defined by `PG2S3_S3_BUCKET_NAME` must be created outside of this tool.
 Bucket creation has more configuration and security options than pg2s3 is positioned to deal with.
+Additionally, the number defined by `PG2S3_BACKUP_RETENTION` simply refers to the _number_ of backups kept during a prune.
+It has nothing to do with the backups' age or total bucket size.
+If programmatic backups are in use, you'll want to consider the scheduling frequency when determining an appropriate retention count.
 
 The following environment variables are required to run pg2s3:
 
