@@ -212,7 +212,12 @@ func (c *Client) connect() (*minio.Client, error) {
 func parseBackupTimestamp(name string) (time.Time, error) {
 	delimiters := regexp.MustCompile(`(_|\.)`)
 
-	timestamp := delimiters.Split(name, -1)[1]
+	fields := delimiters.Split(name, -1)
+	if len(fields) < 3 {
+		return time.Time{}, errors.New("invalid backup name")
+	}
+
+	timestamp := fields[1]
 	t, err := time.Parse(time.RFC3339, timestamp)
 	if err != nil {
 		return time.Time{}, err
