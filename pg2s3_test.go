@@ -13,6 +13,10 @@ import (
 	"github.com/theandrew168/pg2s3"
 )
 
+// TODO: test for missing pg_dump / pg_restore commands?
+// TODO: test for failed connection to minio?
+// TODO: test for S3 operation (get, put, list, delete) failures?
+
 func requireEnv(t *testing.T, name string) string {
 	value := os.Getenv(name)
 	if value == "" {
@@ -53,8 +57,6 @@ func createBucket(s3Endpoint, s3AccessKeyID, s3SecretAccessKey, s3BucketName str
 
 	return nil
 }
-
-// TODO: test for missing pg_dump / pg_restore commands?
 
 func TestGenerateBackupName(t *testing.T) {
 	prefix := "pg2s3"
