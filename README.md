@@ -13,10 +13,10 @@ The scheduling of periodic backups is also left out: rely on tools such as [cron
 ## Configuration
 Configuration for pg2s3 is handle exclusively through environment variables.
 This leaves out the need for config files, command line parameters, and the precedence rules that exist between them.
-
 Note that the S3 bucket defined by `PG2S3_S3_BUCKET_NAME` must be created outside of this tool.
+
 Bucket creation has more configuration and security options than pg2s3 is positioned to deal with.
-Additionally, the number defined by `PG2S3_BACKUP_RETENTION` simply refers to the _number_ of backups kept during a prune.
+Additionally, the value defined by `PG2S3_BACKUP_RETENTION` simply refers to the _number_ of backups kept during a prune.
 It has nothing to do with the backups' age or total bucket size.
 If programmatic backups are in use, you'll want to consider the scheduling frequency when determining an appropriate retention count.
 
@@ -34,8 +34,8 @@ The following environment variables are required to run pg2s3:
 
 ## Usage
 The pg2s3 command-line tool offers three commands:
-* `pg2s3 backup` - Create a new backup from PG and upload to S3
-* `pg2s3 restore` - Download the latest backup from S3 and restore to PG
+* `pg2s3 backup` - Create a new backup and upload to S3
+* `pg2s3 restore` - Download the latest backup from S3 and restore
 * `pg2s3 prune` - Prune old backups from S3
 
 ## Local Development
