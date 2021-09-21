@@ -42,9 +42,9 @@ The following environment variables are required to run pg2s3:
 ## Encryption
 Backups managed by pg2s3 can be optionally encrypted using [age](https://github.com/FiloSottile/age).
 To enable this feature, an age public key must be defined as an additional environment variable.
-Note that your age private key must be kept safe and secure!
-When restoring a backup, pg2s3 will prompt for a private key.
-This key is explicitly kept out of pg2s3's environment in order to require user intervention for any data decryption.
+Note that the private key associated with this public key must be kept safe and secure!
+When restoring a backup, pg2s3 will prompt for the private key.
+This key is intentionally absent from pg2s3's environment in order to require user intervention for any data decryption.
 
 | Variable                  | Description |
 | ------------------------- | ----------- |
