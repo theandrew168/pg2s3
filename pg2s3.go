@@ -51,7 +51,7 @@ func New(pgConnectionURI, s3Endpoint, s3AccessKeyID, s3SecretAccessKey, s3Bucket
 	return &client, nil
 }
 
-// pg_dump -Fc -f dvdrental.backup $PG2S3_DATABASE_URL
+// pg_dump -Fc -f dvdrental.backup $PG2S3_PG_CONNECTION_URI
 func (c *Client) CreateBackup(path string) error {
 	args := []string{
 		"-Fc",
@@ -73,7 +73,7 @@ func (c *Client) CreateBackup(path string) error {
 	return nil
 }
 
-// pg_restore -c -d $PG2S3_DATABASE_URL testdata/dvdrental.backup
+// pg_restore -c -d $PG2S3_PG_CONNECTION_URI testdata/dvdrental.backup
 func (c *Client) RestoreBackup(path string) error {
 	args := []string{
 		"-c",
