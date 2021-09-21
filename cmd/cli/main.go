@@ -160,8 +160,15 @@ func prune(client *pg2s3.Client, retention int) error {
 	}
 
 	// check if backup count exceeds retention
-	if len(backups) < retention {
+	if len(backups) <= retention {
 		return nil
+	}
+
+	// confirm deletion of all backups
+	if retention < 1 {
+		if !confirm("delete all backups") {
+			return nil
+		}
 	}
 
 	// determine expired backups to prune
