@@ -37,6 +37,7 @@ func main() {
 	}
 
 	// TODO: verify connections to PG and S3
+	// TODO: verify age public key (if provided)
 
 	cmd := os.Args[1]
 	switch cmd {
@@ -103,7 +104,7 @@ func backup(client *pg2s3.Client, prefix string) error {
 	defer os.Remove(path)
 
 	// upload backup
-	err = client.UploadBackup(path, name)
+	err = client.UploadBackup(name, path)
 	if err != nil {
 		return err
 	}
@@ -130,7 +131,7 @@ func restore(client *pg2s3.Client) error {
 	path := pg2s3.GenerateBackupPath(latest)
 
 	// download backup
-	err = client.DownloadBackup(latest, path)
+	err = client.DownloadBackup(path, latest)
 	if err != nil {
 		return err
 	}

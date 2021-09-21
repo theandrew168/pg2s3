@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"filippo.io/age"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
@@ -95,6 +96,26 @@ func (c *Client) RestoreBackup(path string) error {
 	return nil
 }
 
+func (c *Client) EncryptBackup(dstPath, srcPath, publicKey string) error {
+	recipient, err := age.ParseX25519Recipient(publicKey)
+	if err != nil {
+		return err
+	}
+	fmt.Println(recipient)
+
+	return nil
+}
+
+func (c *Client) DecryptBackup(dstPath, srcPath, privateKey string) error {
+	identity, err := age.ParseX25519Identity(privateKey)
+	if err != nil {
+		return err
+	}
+	fmt.Println(identity)
+
+	return nil
+}
+
 func (c *Client) ListBackups() ([]string, error) {
 	client, err := c.connect()
 	if err != nil {
@@ -123,7 +144,7 @@ func (c *Client) ListBackups() ([]string, error) {
 	return backups, nil
 }
 
-func (c *Client) UploadBackup(path, name string) error {
+func (c *Client) UploadBackup(dstName, srcPath string) error {
 	client, err := c.connect()
 	if err != nil {
 		return err
@@ -133,8 +154,8 @@ func (c *Client) UploadBackup(path, name string) error {
 	_, err = client.FPutObject(
 		ctx,
 		c.s3BucketName,
-		name,
-		path,
+		dstName,
+		srcPath,
 		minio.PutObjectOptions{})
 	if err != nil {
 		return err
@@ -143,7 +164,7 @@ func (c *Client) UploadBackup(path, name string) error {
 	return nil
 }
 
-func (c *Client) DownloadBackup(name, path string) error {
+func (c *Client) DownloadBackup(dstPath, srcName string) error {
 	client, err := c.connect()
 	if err != nil {
 		return err
@@ -153,8 +174,8 @@ func (c *Client) DownloadBackup(name, path string) error {
 	err = client.FGetObject(
 		ctx,
 		c.s3BucketName,
-		name,
-		path,
+		srcName,
+		dstPath,
 		minio.GetObjectOptions{})
 	if err != nil {
 		return err

@@ -133,7 +133,7 @@ func TestBackup(t *testing.T) {
 	defer os.Remove(path)
 
 	// upload backup
-	err = client.UploadBackup(path, name)
+	err = client.UploadBackup(name, path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -179,7 +179,7 @@ func TestRestore(t *testing.T) {
 	path := pg2s3.GenerateBackupPath(latest)
 
 	// download backup
-	err = client.DownloadBackup(latest, path)
+	err = client.DownloadBackup(path, latest)
 	if err != nil {
 		t.Fatal(err)
 	}
