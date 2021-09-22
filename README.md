@@ -2,7 +2,7 @@
 Simple PostgreSQL backups to S3-compatible storage
 
 ## Overview
-This project strives to be simple and reliable backup solution for [PostgreSQL](https://www.postgresql.org/) databases.
+This project strives to be a simple and reliable backup solution for [PostgreSQL](https://www.postgresql.org/) databases.
 In general, pg2s3 dumps a given database and uploads it to an S3-compatible storage bucket.
 However, there is a bit more nuance involved in bookkeeping, restoration, and pruning.
 
@@ -18,7 +18,7 @@ These tools are part of the collection of [PostgreSQL Client Applications](https
 On an Ubuntu server, these tools are contained within the package `postgresql-client-<version>` based on the major version of PostgreSQL being used.
 
 ## Configuration
-Configuration for pg2s3 is handle exclusively through environment variables.
+Configuration for pg2s3 is handled exclusively through environment variables.
 This leaves out the need for config files, command line parameters, and the precedence rules that exist between them.
 Note that the S3 bucket defined by `PG2S3_S3_BUCKET_NAME` must be created outside of this tool.
 
