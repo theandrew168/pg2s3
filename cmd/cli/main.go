@@ -12,6 +12,8 @@ import (
 	"github.com/theandrew168/pg2s3"
 )
 
+// TODO: move env var names to package constants?
+
 func main() {
 	log.SetFlags(0)
 
@@ -31,12 +33,15 @@ func main() {
 		log.Fatalln(err)
 	}
 
+	publicKey := os.Getenv("PG2S3_AGE_PUBLIC_KEY")
+
 	usage := "usage: pg2s3 backup|restore|prune"
 	if len(os.Args) < 2 {
 		log.Fatalln(usage)
 	}
 
-	// TODO: verify connections to PG and S3
+	// TODO: verify connection to PG
+	// TODO: verify connection to S3
 	// TODO: verify age public key (if provided)
 
 	cmd := os.Args[1]
@@ -47,7 +52,7 @@ func main() {
 			log.Fatalln(err)
 		}
 	case "restore":
-		err = restore(client)
+		err = restore(client, publicKey)
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -113,7 +118,7 @@ func backup(client *pg2s3.Client, prefix string) error {
 	return nil
 }
 
-func restore(client *pg2s3.Client) error {
+func restore(client *pg2s3.Client, publicKey string) error {
 	// list all backups
 	backups, err := client.ListBackups()
 	if err != nil {

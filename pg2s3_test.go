@@ -17,6 +17,8 @@ import (
 // TODO: test for failed connection to minio?
 // TODO: test for S3 operation (get, put, list, delete) failures?
 
+const privateKey = "AGE-SECRET-KEY-1L54UFTSF6GUXYQMMQ8HDFYCQ59E7R80RPFLJZS3V3S0M7AFLAD4QUAFH3J"
+
 func requireEnv(t *testing.T, name string) string {
 	value := os.Getenv(name)
 	if value == "" {
@@ -101,6 +103,8 @@ func TestBackup(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	publicKey := os.Getenv("PG2S3_AGE_PUBLIC_KEY")
+
 	err = createBucket(s3Endpoint, s3AccessKeyID, s3SecretAccessKey, s3BucketName)
 	if err != nil {
 		t.Fatal(err)
@@ -132,6 +136,18 @@ func TestBackup(t *testing.T) {
 	}
 	defer os.Remove(path)
 
+	// encrypt backup (if applicable)
+	if publicKey != "" {
+		agePath := path + ".age"
+		err := client.EncryptBackup(agePath, path, publicKey)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		name = name + ".age"
+		path = agePath
+	}
+
 	// upload backup
 	err = client.UploadBackup(name, path)
 	if err != nil {
@@ -151,6 +167,8 @@ func TestRestore(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	publicKey := os.Getenv("PG2S3_AGE_PUBLIC_KEY")
 
 	client, err := pg2s3.New(
 		pgConnectionURI,
@@ -184,6 +202,16 @@ func TestRestore(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer os.Remove(path)
+
+	// decrypt backup (if applicable)
+	if publicKey != "" {
+		agePath := path
+		path = strings.TrimSuffix(path, ".age")
+		err := client.DecryptBackup(path, agePath, privateKey)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
 
 	// restore backup
 	err = client.RestoreBackup(path)
