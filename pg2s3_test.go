@@ -147,6 +147,7 @@ func TestBackup(t *testing.T) {
 		name = name + ".age"
 		path = agePath
 	}
+	defer os.Remove(path)
 
 	// upload backup
 	err = client.UploadBackup(name, path)
@@ -212,6 +213,7 @@ func TestRestore(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	defer os.Remove(path)
 
 	// restore backup
 	err = client.RestoreBackup(path)
