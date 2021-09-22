@@ -120,6 +120,7 @@ func backup(client *pg2s3.Client, prefix string) error {
 		name = name + ".age"
 		path = agePath
 	}
+	defer os.Remove(path)
 
 	// upload backup
 	err = client.UploadBackup(name, path)
@@ -174,6 +175,7 @@ func restore(client *pg2s3.Client) error {
 			return err
 		}
 	}
+	defer os.Remove(path)
 
 	// confirm restore before applying
 	message := fmt.Sprintf("restore %s", latest)
