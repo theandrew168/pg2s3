@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/theandrew168/pg2s3"
+	"golang.org/x/term"
 )
 
 // TODO: move env var names to package constants?
@@ -33,8 +34,6 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	publicKey := os.Getenv("PG2S3_AGE_PUBLIC_KEY")
-
 	usage := "usage: pg2s3 backup|restore|prune"
 	if len(os.Args) < 2 {
 		log.Fatalln(usage)
@@ -52,7 +51,7 @@ func main() {
 			log.Fatalln(err)
 		}
 	case "restore":
-		err = restore(client, publicKey)
+		err = restore(client)
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -92,6 +91,8 @@ func confirm(message string) bool {
 }
 
 func backup(client *pg2s3.Client, prefix string) error {
+	publicKey := os.Getenv("PG2S3_AGE_PUBLIC_KEY")
+
 	// generate name for backup
 	name, err := pg2s3.GenerateBackupName(prefix)
 	if err != nil {
@@ -108,6 +109,18 @@ func backup(client *pg2s3.Client, prefix string) error {
 	}
 	defer os.Remove(path)
 
+	// encrypt backup (if applicable)
+	if publicKey != "" {
+		agePath := path + ".age"
+		err := client.EncryptBackup(agePath, path, publicKey)
+		if err != nil {
+			return err
+		}
+
+		name = name + ".age"
+		path = agePath
+	}
+
 	// upload backup
 	err = client.UploadBackup(name, path)
 	if err != nil {
@@ -118,7 +131,9 @@ func backup(client *pg2s3.Client, prefix string) error {
 	return nil
 }
 
-func restore(client *pg2s3.Client, publicKey string) error {
+func restore(client *pg2s3.Client) error {
+	publicKey := os.Getenv("PG2S3_AGE_PUBLIC_KEY")
+
 	// list all backups
 	backups, err := client.ListBackups()
 	if err != nil {
@@ -141,6 +156,24 @@ func restore(client *pg2s3.Client, publicKey string) error {
 		return err
 	}
 	defer os.Remove(path)
+
+	// decrypt backup (if applicable)
+	if publicKey != "" {
+		fmt.Println("enter age private key:")
+		input, err := term.ReadPassword(int(os.Stdin.Fd()))
+		if err != nil {
+			return err
+		}
+
+		privateKey := string(input)
+
+		agePath := path
+		path = strings.TrimSuffix(path, ".age")
+		err = client.DecryptBackup(path, agePath, privateKey)
+		if err != nil {
+			return err
+		}
+	}
 
 	// confirm restore before applying
 	message := fmt.Sprintf("restore %s", latest)

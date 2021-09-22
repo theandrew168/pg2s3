@@ -5,6 +5,7 @@ go 1.17
 require (
 	filippo.io/age v1.0.0
 	github.com/minio/minio-go/v7 v7.0.14
+	golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b
 )
 
 require (
