@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -101,7 +102,38 @@ func (c *Client) EncryptBackup(dstPath, srcPath, publicKey string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(recipient)
+
+	in, err := os.Open(srcPath)
+	if err != nil {
+		return err
+	}
+
+	out, err := os.Create(dstPath)
+	if err != nil {
+		return err
+	}
+
+	w, err := age.Encrypt(out, recipient)
+	if err != nil {
+		return err
+	}
+
+	if _, err = io.Copy(w, in); err != nil {
+		return err
+	}
+
+	// explicit close to flush encryption
+	if err = w.Close(); err != nil {
+		return err
+	}
+
+	if err = in.Close(); err != nil {
+		return err
+	}
+
+	if err = out.Close(); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -111,7 +143,33 @@ func (c *Client) DecryptBackup(dstPath, srcPath, privateKey string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(identity)
+
+	in, err := os.Open(srcPath)
+	if err != nil {
+		return err
+	}
+
+	out, err := os.Create(dstPath)
+	if err != nil {
+		return err
+	}
+
+	r, err := age.Decrypt(in, identity)
+	if err != nil {
+		return err
+	}
+
+	if _, err = io.Copy(out, r); err != nil {
+		return err
+	}
+
+	if err = in.Close(); err != nil {
+		return err
+	}
+
+	if err = out.Close(); err != nil {
+		return err
+	}
 
 	return nil
 }
