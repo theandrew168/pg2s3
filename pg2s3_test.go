@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -15,7 +16,6 @@ import (
 
 // TODO: test for missing pg_dump / pg_restore commands?
 // TODO: test for failed connection to minio?
-// TODO: test for S3 operation (get, put, list, delete) failures?
 
 const privateKey = "AGE-SECRET-KEY-1L54UFTSF6GUXYQMMQ8HDFYCQ59E7R80RPFLJZS3V3S0M7AFLAD4QUAFH3J"
 
@@ -72,6 +72,7 @@ func TestGenerateBackupName(t *testing.T) {
 	if !strings.HasPrefix(name, prefix) {
 		t.Errorf("name %q is missing prefix %q", name, prefix)
 	}
+
 	if !strings.HasSuffix(name, suffix) {
 		t.Errorf("name %q is missing suffix %q", name, suffix)
 	}
@@ -90,20 +91,49 @@ func TestGenerateBackupName(t *testing.T) {
 	}
 }
 
-func TestBackup(t *testing.T) {
-	pgConnectionURI := requireEnv(t, "PG2S3_PG_CONNECTION_URI")
-	s3Endpoint := requireEnv(t, "PG2S3_S3_ENDPOINT")
-	s3AccessKeyID := requireEnv(t, "PG2S3_S3_ACCESS_KEY_ID")
-	s3SecretAccessKey := requireEnv(t, "PG2S3_S3_SECRET_ACCESS_KEY")
-	s3BucketName := requireEnv(t, "PG2S3_S3_BUCKET_NAME")
-
-	prefix := requireEnv(t, "PG2S3_BACKUP_PREFIX")
-	_, err := strconv.Atoi(requireEnv(t, "PG2S3_BACKUP_RETENTION"))
+func TestParseBackupTimestamp(t *testing.T) {
+	name := "pg2s3_2021-09-23T14:41:17-05:00.backup.age"
+	got, err := pg2s3.ParseBackupTimestamp(name)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	publicKey := os.Getenv("PG2S3_AGE_PUBLIC_KEY")
+	want, err := time.Parse(time.RFC3339, "2021-09-23T14:41:17-05:00")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if got != want {
+		t.Fatal("mismatched timestamps")
+	}
+
+	name = "foobarinvalid.backup"
+	_, err = pg2s3.ParseBackupTimestamp(name)
+	if err == nil {
+		t.Fatal("expected invalid backup name")
+	}
+
+	name = "foobar_07131994.backup"
+	_, err = pg2s3.ParseBackupTimestamp(name)
+	if err == nil {
+		t.Fatal("expected invalid backup name")
+	}
+}
+
+func TestBackup(t *testing.T) {
+	pgConnectionURI := requireEnv(t, pg2s3.EnvPGConnectionURI)
+	s3Endpoint := requireEnv(t, pg2s3.EnvS3Endpoint)
+	s3AccessKeyID := requireEnv(t, pg2s3.EnvS3AccessKeyID)
+	s3SecretAccessKey := requireEnv(t, pg2s3.EnvS3SecretAccessKey)
+	s3BucketName := requireEnv(t, pg2s3.EnvS3BucketName)
+
+	prefix := requireEnv(t, pg2s3.EnvBackupPrefix)
+	_, err := strconv.Atoi(requireEnv(t, pg2s3.EnvBackupRetention))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	publicKey := os.Getenv(pg2s3.EnvAgePublicKey)
 
 	err = createBucket(s3Endpoint, s3AccessKeyID, s3SecretAccessKey, s3BucketName)
 	if err != nil {
@@ -126,50 +156,43 @@ func TestBackup(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// generate path for backup
-	path := pg2s3.GenerateBackupPath(name)
-
 	// create backup
-	err = client.CreateBackup(path)
+	backup, err := client.CreateBackup()
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(path)
 
 	// encrypt backup (if applicable)
 	if publicKey != "" {
-		agePath := path + ".age"
-		err := client.EncryptBackup(agePath, path, publicKey)
+		backup, err = client.EncryptBackup(backup, publicKey)
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		name = name + ".age"
-		path = agePath
 	}
-	defer os.Remove(path)
 
 	// upload backup
-	err = client.UploadBackup(name, path)
+	err = client.UploadBackup(name, backup)
 	if err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestRestore(t *testing.T) {
-	pgConnectionURI := requireEnv(t, "PG2S3_PG_CONNECTION_URI")
-	s3Endpoint := requireEnv(t, "PG2S3_S3_ENDPOINT")
-	s3AccessKeyID := requireEnv(t, "PG2S3_S3_ACCESS_KEY_ID")
-	s3SecretAccessKey := requireEnv(t, "PG2S3_S3_SECRET_ACCESS_KEY")
-	s3BucketName := requireEnv(t, "PG2S3_S3_BUCKET_NAME")
+	pgConnectionURI := requireEnv(t, pg2s3.EnvPGConnectionURI)
+	s3Endpoint := requireEnv(t, pg2s3.EnvS3Endpoint)
+	s3AccessKeyID := requireEnv(t, pg2s3.EnvS3AccessKeyID)
+	s3SecretAccessKey := requireEnv(t, pg2s3.EnvS3SecretAccessKey)
+	s3BucketName := requireEnv(t, pg2s3.EnvS3BucketName)
 
-	_ = requireEnv(t, "PG2S3_BACKUP_PREFIX")
-	_, err := strconv.Atoi(requireEnv(t, "PG2S3_BACKUP_RETENTION"))
+	_ = requireEnv(t, pg2s3.EnvBackupPrefix)
+	_, err := strconv.Atoi(requireEnv(t, pg2s3.EnvBackupRetention))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	publicKey := os.Getenv("PG2S3_AGE_PUBLIC_KEY")
+	publicKey := os.Getenv(pg2s3.EnvAgePublicKey)
 
 	client, err := pg2s3.New(
 		pgConnectionURI,
@@ -194,43 +217,36 @@ func TestRestore(t *testing.T) {
 	// determine latest backup
 	latest := backups[0]
 
-	// generate path for backup
-	path := pg2s3.GenerateBackupPath(latest)
-
 	// download backup
-	err = client.DownloadBackup(path, latest)
+	backup, err := client.DownloadBackup(latest)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(path)
 
 	// decrypt backup (if applicable)
 	if publicKey != "" {
-		agePath := path
-		path = strings.TrimSuffix(path, ".age")
-		err := client.DecryptBackup(path, agePath, privateKey)
+		backup, err = client.DecryptBackup(backup, privateKey)
 		if err != nil {
 			t.Fatal(err)
 		}
 	}
-	defer os.Remove(path)
 
 	// restore backup
-	err = client.RestoreBackup(path)
+	err = client.RestoreBackup(backup)
 	if err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestPrune(t *testing.T) {
-	pgConnectionURI := requireEnv(t, "PG2S3_PG_CONNECTION_URI")
-	s3Endpoint := requireEnv(t, "PG2S3_S3_ENDPOINT")
-	s3AccessKeyID := requireEnv(t, "PG2S3_S3_ACCESS_KEY_ID")
-	s3SecretAccessKey := requireEnv(t, "PG2S3_S3_SECRET_ACCESS_KEY")
-	s3BucketName := requireEnv(t, "PG2S3_S3_BUCKET_NAME")
+	pgConnectionURI := requireEnv(t, pg2s3.EnvPGConnectionURI)
+	s3Endpoint := requireEnv(t, pg2s3.EnvS3Endpoint)
+	s3AccessKeyID := requireEnv(t, pg2s3.EnvS3AccessKeyID)
+	s3SecretAccessKey := requireEnv(t, pg2s3.EnvS3SecretAccessKey)
+	s3BucketName := requireEnv(t, pg2s3.EnvS3BucketName)
 
-	_ = requireEnv(t, "PG2S3_BACKUP_PREFIX")
-	retention, err := strconv.Atoi(requireEnv(t, "PG2S3_BACKUP_RETENTION"))
+	_ = requireEnv(t, pg2s3.EnvBackupPrefix)
+	retention, err := strconv.Atoi(requireEnv(t, pg2s3.EnvBackupRetention))
 	if err != nil {
 		t.Fatal(err)
 	}

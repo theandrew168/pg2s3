@@ -9,39 +9,43 @@ import (
 	"strconv"
 	"strings"
 
+	"filippo.io/age"
 	"github.com/theandrew168/pg2s3"
 	"golang.org/x/term"
 )
 
-// TODO: move env var names to package constants?
-
 func main() {
 	log.SetFlags(0)
-
-	client, err := pg2s3.New(
-		requireEnv("PG2S3_PG_CONNECTION_URI"),
-		requireEnv("PG2S3_S3_ENDPOINT"),
-		requireEnv("PG2S3_S3_ACCESS_KEY_ID"),
-		requireEnv("PG2S3_S3_SECRET_ACCESS_KEY"),
-		requireEnv("PG2S3_S3_BUCKET_NAME"))
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	prefix := requireEnv("PG2S3_BACKUP_PREFIX")
-	retention, err := strconv.Atoi(requireEnv("PG2S3_BACKUP_RETENTION"))
-	if err != nil {
-		log.Fatalln(err)
-	}
 
 	usage := "usage: pg2s3 backup|restore|prune"
 	if len(os.Args) < 2 {
 		log.Fatalln(usage)
 	}
 
-	// TODO: verify connection to PG
-	// TODO: verify connection to S3
-	// TODO: verify age public key (if provided)
+	client, err := pg2s3.New(
+		requireEnv(pg2s3.EnvPGConnectionURI),
+		requireEnv(pg2s3.EnvS3Endpoint),
+		requireEnv(pg2s3.EnvS3AccessKeyID),
+		requireEnv(pg2s3.EnvS3SecretAccessKey),
+		requireEnv(pg2s3.EnvS3BucketName))
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	prefix := requireEnv(pg2s3.EnvBackupPrefix)
+	retention, err := strconv.Atoi(requireEnv(pg2s3.EnvBackupRetention))
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	// validate public key (if provided)
+	publicKey := os.Getenv(pg2s3.EnvAgePublicKey)
+	if publicKey != "" {
+		_, err = age.ParseX25519Recipient(publicKey)
+		if err != nil {
+			log.Fatalln(err)
+		}
+	}
 
 	cmd := os.Args[1]
 	switch cmd {
@@ -91,7 +95,7 @@ func confirm(message string) bool {
 }
 
 func backup(client *pg2s3.Client, prefix string) error {
-	publicKey := os.Getenv("PG2S3_AGE_PUBLIC_KEY")
+	publicKey := os.Getenv(pg2s3.EnvAgePublicKey)
 
 	// generate name for backup
 	name, err := pg2s3.GenerateBackupName(prefix)
@@ -99,31 +103,24 @@ func backup(client *pg2s3.Client, prefix string) error {
 		return err
 	}
 
-	// generate path for backup
-	path := pg2s3.GenerateBackupPath(name)
-
 	// create backup
-	err = client.CreateBackup(path)
+	backup, err := client.CreateBackup()
 	if err != nil {
 		return err
 	}
-	defer os.Remove(path)
 
 	// encrypt backup (if applicable)
 	if publicKey != "" {
-		agePath := path + ".age"
-		err := client.EncryptBackup(agePath, path, publicKey)
+		backup, err = client.EncryptBackup(backup, publicKey)
 		if err != nil {
 			return err
 		}
 
 		name = name + ".age"
-		path = agePath
 	}
-	defer os.Remove(path)
 
 	// upload backup
-	err = client.UploadBackup(name, path)
+	err = client.UploadBackup(name, backup)
 	if err != nil {
 		return err
 	}
@@ -133,7 +130,7 @@ func backup(client *pg2s3.Client, prefix string) error {
 }
 
 func restore(client *pg2s3.Client) error {
-	publicKey := os.Getenv("PG2S3_AGE_PUBLIC_KEY")
+	publicKey := os.Getenv(pg2s3.EnvAgePublicKey)
 
 	// list all backups
 	backups, err := client.ListBackups()
@@ -148,34 +145,28 @@ func restore(client *pg2s3.Client) error {
 	// determine latest backup
 	latest := backups[0]
 
-	// generate path for backup
-	path := pg2s3.GenerateBackupPath(latest)
-
 	// download backup
-	err = client.DownloadBackup(path, latest)
+	backup, err := client.DownloadBackup(latest)
 	if err != nil {
 		return err
 	}
-	defer os.Remove(path)
 
 	// decrypt backup (if applicable)
 	if publicKey != "" {
-		fmt.Println("enter age private key:")
+		fmt.Print("enter private key: ")
 		input, err := term.ReadPassword(int(os.Stdin.Fd()))
 		if err != nil {
 			return err
 		}
 
+		fmt.Println()
 		privateKey := string(input)
 
-		agePath := path
-		path = strings.TrimSuffix(path, ".age")
-		err = client.DecryptBackup(path, agePath, privateKey)
+		backup, err = client.DecryptBackup(backup, privateKey)
 		if err != nil {
 			return err
 		}
 	}
-	defer os.Remove(path)
 
 	// confirm restore before applying
 	message := fmt.Sprintf("restore %s", latest)
@@ -184,7 +175,7 @@ func restore(client *pg2s3.Client) error {
 	}
 
 	// restore backup
-	err = client.RestoreBackup(path)
+	err = client.RestoreBackup(backup)
 	if err != nil {
 		return err
 	}
