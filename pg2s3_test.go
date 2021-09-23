@@ -104,7 +104,7 @@ func TestParseBackupTimestamp(t *testing.T) {
 	}
 
 	if got != want {
-		t.Fatal("mismatched timestamps")
+		t.Fatalf("want %v, got %v", want, got)
 	}
 
 	name = "foobarinvalid.backup"
