@@ -103,7 +103,7 @@ func TestParseBackupTimestamp(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if got != want {
+	if !got.Equal(want) {
 		t.Fatalf("want %v, got %v", want, got)
 	}
 
