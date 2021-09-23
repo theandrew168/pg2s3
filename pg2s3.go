@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"filippo.io/age"
+	"github.com/djherbis/buffer"
 	"github.com/jackc/pgx/v4"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -110,8 +111,9 @@ func (c *Client) CreateBackup() (io.Reader, error) {
 	}
 	cmd := exec.Command("pg_dump", args...)
 
-	var backup bytes.Buffer
-	cmd.Stdout = &backup
+	// buffer 32MB to memory, after that buffer to 64MB chunked files
+	backup := buffer.NewUnboundedBuffer(32*1024*1024, 64*1024*1024)
+	cmd.Stdout = backup
 
 	var capture bytes.Buffer
 	cmd.Stderr = &capture
@@ -121,7 +123,7 @@ func (c *Client) CreateBackup() (io.Reader, error) {
 		return nil, errors.New(capture.String())
 	}
 
-	return &backup, nil
+	return backup, nil
 }
 
 func (c *Client) RestoreBackup(backup io.Reader) error {
