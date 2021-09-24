@@ -4,13 +4,13 @@ go 1.17
 
 require (
 	filippo.io/age v1.0.0
+	github.com/djherbis/buffer v1.2.0
 	github.com/jackc/pgx/v4 v4.13.0
 	github.com/minio/minio-go/v7 v7.0.14
 	golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b
 )
 
 require (
-	github.com/djherbis/buffer v1.2.0 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/google/uuid v1.1.1 // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
