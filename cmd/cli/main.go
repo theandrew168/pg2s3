@@ -125,7 +125,7 @@ func backup(client *pg2s3.Client, prefix string) error {
 		return err
 	}
 
-	log.Printf("created: %s\n", name)
+	log.Printf("created %s\n", name)
 	return nil
 }
 
@@ -179,7 +179,7 @@ func restore(client *pg2s3.Client) error {
 	if err != nil {
 		return err
 	}
-	log.Printf("restored: %s\n", latest)
+	log.Printf("restored %s\n", latest)
 
 	return nil
 }
@@ -212,7 +212,7 @@ func prune(client *pg2s3.Client, retention int) error {
 		if err != nil {
 			return err
 		}
-		log.Printf("deleted: %s\n", backup)
+		log.Printf("deleted %s\n", backup)
 	}
 
 	return nil
