@@ -17,13 +17,7 @@ builds:
       - 6  # Raspberry Pi A, B, Zero
       - 7  # Raspberry Pi 2, 3, 4
 archives:
-  - replacements:
-      darwin: Darwin
-      linux: Linux
-      windows: Windows
-      386: i386
-      amd64: x86_64
-    files:
+  - files:
       - none*
     format_overrides:
       - goos: windows
