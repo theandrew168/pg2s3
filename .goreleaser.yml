@@ -1,6 +1,7 @@
 before:
   hooks:
     - go mod tidy
+
 builds:
   - main: ./cmd/cli/main.go
     env:
@@ -16,19 +17,43 @@ builds:
     goarm:
       - 6  # Raspberry Pi A, B, Zero
       - 7  # Raspberry Pi 2, 3, 4
+
 archives:
   - files:
       - none*
     format_overrides:
       - goos: windows
         format: zip
+
+nfpms:
+  - package_name: pg2s3
+    homepage: https://github.com/theandrew168/pg2s3
+    description: Simple PostgreSQL backups to S3-compatible storage
+    maintainer: Andrew Dailey <andrew@shallowbrooksoftware.com>
+    license: MIT
+    formats:
+      - deb
+    bindir: /usr/bin
+    contents:
+      - src: ./scripts/pg2s3.service
+        dst: /lib/systemd/system/pg2s3.service
+      - src: pg2s3.conf
+        dst: /etc/pg2s3.conf
+        type: config
+    scripts:
+      postinstall: ./scripts/postinstall.sh
+      preremove: ./scripts/preremove.sh
+      postremove: ./scripts/postremove.sh
+
 checksum:
-  name_template: 'checksums.txt'
+  name_template: checksums.txt
+
 snapshot:
   name_template: "{{ incpatch .Version }}-next"
+
 changelog:
   sort: asc
   filters:
     exclude:
-      - '^docs:'
-      - '^test:'
+      - "^docs:"
+      - "^test:"

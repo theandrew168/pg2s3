@@ -1,13 +1,16 @@
 [Unit]
-Description=pg2s3 database backup
-After=network.target
+Description=pg2s3
+Documentation=https://github.com/theandrew168/pg2s3
+After=network.target network-online.target
+Requires=network-online.target
 
 [Service]
-Type=oneshot
+Type=simple
 User=pg2s3
 Group=pg2s3
-ExecStart=pg2s3 -conf /etc/pg2s3.conf -backup
-ExecStart=pg2s3 -conf /etc/pg2s3.conf -prune
+ExecStart=pg2s3 -conf /etc/pg2s3.conf
+PrivateTmp=true
+ProtectSystem=full
 
 [Install]
 WantedBy=multi-user.target
