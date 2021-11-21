@@ -219,16 +219,8 @@ func TestPrune(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// check if backup count exceeds retention
-	if cfg.BackupRetention <= 0 || len(backups) < cfg.BackupRetention {
-		return
-	}
-
-	// determine expired backups to prune
-	expired := backups[cfg.BackupRetention:]
-
-	// prune old backups
-	for _, backup := range expired {
+	// delete all backups
+	for _, backup := range backups {
 		err = client.DeleteBackup(backup)
 		if err != nil {
 			t.Fatal(err)
