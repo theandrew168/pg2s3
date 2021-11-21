@@ -19,12 +19,3 @@ jobs:
     - name: Run tests
       run: |
         go test ./...
-      env:
-        PG2S3_PG_CONNECTION_URI: 'postgresql://postgres:postgres@localhost:5432/postgres'
-        PG2S3_S3_ENDPOINT: 'localhost:9000'
-        PG2S3_S3_ACCESS_KEY_ID: 'AKIAIOSFODNN7EXAMPLE'
-        PG2S3_S3_SECRET_ACCESS_KEY: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
-        PG2S3_S3_BUCKET_NAME: 'pg2s3'
-        PG2S3_BACKUP_PREFIX: 'pg2s3'
-        PG2S3_BACKUP_RETENTION: 30
-        PG2S3_AGE_PUBLIC_KEY: 'age156hm5jvxfvf8xf0zjs52gc5hhq64rt23gw3fehqj2vu77sk07a5qvplj52'

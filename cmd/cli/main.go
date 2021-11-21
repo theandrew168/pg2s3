@@ -3,78 +3,56 @@ package main
 import (
 	"bufio"
 	"errors"
+	"flag"
 	"fmt"
 	"log"
 	"os"
-	"strconv"
 	"strings"
 
-	"filippo.io/age"
-	"github.com/theandrew168/pg2s3"
 	"golang.org/x/term"
+
+	"github.com/theandrew168/pg2s3"
 )
 
 func main() {
 	log.SetFlags(0)
 
-	usage := "usage: pg2s3 backup|restore|prune"
-	if len(os.Args) < 2 {
-		log.Fatalln(usage)
-	}
+	conf := flag.String("conf", "pg2s3.toml", "pg2s3 config file")
+	actionBackup := flag.Bool("backup", false, "pg2s3 action: backup")
+	actionRestore := flag.Bool("restore", false, "pg2s3 action: restore")
+	actionPrune := flag.Bool("prune", false, "pg2s3 action: prune")
+	flag.Parse()
 
-	client, err := pg2s3.New(
-		requireEnv(pg2s3.EnvPGConnectionURI),
-		requireEnv(pg2s3.EnvS3Endpoint),
-		requireEnv(pg2s3.EnvS3AccessKeyID),
-		requireEnv(pg2s3.EnvS3SecretAccessKey),
-		requireEnv(pg2s3.EnvS3BucketName))
+	cfg, err := pg2s3.ReadConfig(*conf)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	prefix := requireEnv(pg2s3.EnvBackupPrefix)
-	retention, err := strconv.Atoi(requireEnv(pg2s3.EnvBackupRetention))
+	client, err := pg2s3.New(cfg)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	// validate public key (if provided)
-	publicKey := os.Getenv(pg2s3.EnvAgePublicKey)
-	if publicKey != "" {
-		_, err = age.ParseX25519Recipient(publicKey)
+	if *actionBackup {
+		err = backup(client, cfg)
 		if err != nil {
 			log.Fatalln(err)
 		}
 	}
 
-	cmd := os.Args[1]
-	switch cmd {
-	case "backup":
-		err = backup(client, prefix)
+	if *actionRestore {
+		err = restore(client, cfg)
 		if err != nil {
 			log.Fatalln(err)
 		}
-	case "restore":
-		err = restore(client)
-		if err != nil {
-			log.Fatalln(err)
-		}
-	case "prune":
-		err = prune(client, retention)
-		if err != nil {
-			log.Fatalln(err)
-		}
-	default:
-		log.Fatalln(usage)
 	}
-}
 
-func requireEnv(name string) string {
-	value := os.Getenv(name)
-	if value == "" {
-		log.Fatalf("missing required env var: %s\n", name)
+	if *actionPrune {
+		err = prune(client, cfg)
+		if err != nil {
+			log.Fatalln(err)
+		}
 	}
-	return value
 }
 
 func confirm(message string) bool {
@@ -94,11 +72,9 @@ func confirm(message string) bool {
 	}
 }
 
-func backup(client *pg2s3.Client, prefix string) error {
-	publicKey := os.Getenv(pg2s3.EnvAgePublicKey)
-
+func backup(client *pg2s3.Client, cfg pg2s3.Config) error {
 	// generate name for backup
-	name, err := pg2s3.GenerateBackupName(prefix)
+	name, err := pg2s3.GenerateBackupName(cfg.BackupPrefix)
 	if err != nil {
 		return err
 	}
@@ -110,8 +86,8 @@ func backup(client *pg2s3.Client, prefix string) error {
 	}
 
 	// encrypt backup (if applicable)
-	if publicKey != "" {
-		backup, err = client.EncryptBackup(backup, publicKey)
+	if cfg.AgePublicKey != "" {
+		backup, err = client.EncryptBackup(backup, cfg.AgePublicKey)
 		if err != nil {
 			return err
 		}
@@ -129,9 +105,7 @@ func backup(client *pg2s3.Client, prefix string) error {
 	return nil
 }
 
-func restore(client *pg2s3.Client) error {
-	publicKey := os.Getenv(pg2s3.EnvAgePublicKey)
-
+func restore(client *pg2s3.Client, cfg pg2s3.Config) error {
 	// list all backups
 	backups, err := client.ListBackups()
 	if err != nil {
@@ -152,7 +126,7 @@ func restore(client *pg2s3.Client) error {
 	}
 
 	// decrypt backup (if applicable)
-	if publicKey != "" {
+	if cfg.AgePublicKey != "" {
 		fmt.Print("enter private key: ")
 		input, err := term.ReadPassword(int(os.Stdin.Fd()))
 		if err != nil {
@@ -184,27 +158,20 @@ func restore(client *pg2s3.Client) error {
 	return nil
 }
 
-func prune(client *pg2s3.Client, retention int) error {
+func prune(client *pg2s3.Client, cfg pg2s3.Config) error {
 	// list all backups
 	backups, err := client.ListBackups()
 	if err != nil {
 		return err
 	}
 
-	// check if backup count exceeds retention
-	if len(backups) <= retention {
+	// exit early if retention is zero or limit hasn't been reached
+	if cfg.BackupRetention <= 0 || len(backups) <= cfg.BackupRetention {
 		return nil
 	}
 
-	// confirm deletion of all backups
-	if retention < 1 {
-		if !confirm("delete all backups") {
-			return nil
-		}
-	}
-
 	// determine expired backups to prune
-	expired := backups[retention:]
+	expired := backups[cfg.BackupRetention:]
 
 	// prune old backups
 	for _, backup := range expired {

@@ -2,8 +2,6 @@ package pg2s3_test
 
 import (
 	"context"
-	"os"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -19,21 +17,14 @@ import (
 
 const privateKey = "AGE-SECRET-KEY-1L54UFTSF6GUXYQMMQ8HDFYCQ59E7R80RPFLJZS3V3S0M7AFLAD4QUAFH3J"
 
-func requireEnv(t *testing.T, name string) string {
-	value := os.Getenv(name)
-	if value == "" {
-		t.Fatalf("missing required env var: %s\n", name)
-	}
-	return value
-}
-
-func createBucket(s3Endpoint, s3AccessKeyID, s3SecretAccessKey, s3BucketName string) error {
+func createBucket(cfg pg2s3.Config) error {
 	creds := credentials.NewStaticV4(
-		s3AccessKeyID,
-		s3SecretAccessKey,
-		"")
+		cfg.S3AccessKeyID,
+		cfg.S3SecretAccessKey,
+		"",
+	)
 
-	client, err := minio.New(s3Endpoint, &minio.Options{
+	client, err := minio.New(cfg.S3Endpoint, &minio.Options{
 		Creds:  creds,
 		Secure: false,
 	})
@@ -42,7 +33,7 @@ func createBucket(s3Endpoint, s3AccessKeyID, s3SecretAccessKey, s3BucketName str
 	}
 
 	ctx := context.Background()
-	exists, err := client.BucketExists(ctx, s3BucketName)
+	exists, err := client.BucketExists(ctx, cfg.S3BucketName)
 	if err != nil {
 		return err
 	}
@@ -50,8 +41,9 @@ func createBucket(s3Endpoint, s3AccessKeyID, s3SecretAccessKey, s3BucketName str
 	if !exists {
 		err = client.MakeBucket(
 			ctx,
-			s3BucketName,
-			minio.MakeBucketOptions{})
+			cfg.S3BucketName,
+			minio.MakeBucketOptions{},
+		)
 		if err != nil {
 			return err
 		}
@@ -121,37 +113,23 @@ func TestParseBackupTimestamp(t *testing.T) {
 }
 
 func TestBackup(t *testing.T) {
-	pgConnectionURI := requireEnv(t, pg2s3.EnvPGConnectionURI)
-	s3Endpoint := requireEnv(t, pg2s3.EnvS3Endpoint)
-	s3AccessKeyID := requireEnv(t, pg2s3.EnvS3AccessKeyID)
-	s3SecretAccessKey := requireEnv(t, pg2s3.EnvS3SecretAccessKey)
-	s3BucketName := requireEnv(t, pg2s3.EnvS3BucketName)
-
-	prefix := requireEnv(t, pg2s3.EnvBackupPrefix)
-	_, err := strconv.Atoi(requireEnv(t, pg2s3.EnvBackupRetention))
+	cfg, err := pg2s3.ReadConfig("pg2s3.toml")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	publicKey := os.Getenv(pg2s3.EnvAgePublicKey)
-
-	err = createBucket(s3Endpoint, s3AccessKeyID, s3SecretAccessKey, s3BucketName)
+	err = createBucket(cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	client, err := pg2s3.New(
-		pgConnectionURI,
-		s3Endpoint,
-		s3AccessKeyID,
-		s3SecretAccessKey,
-		s3BucketName)
+	client, err := pg2s3.New(cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// generate name for backup
-	name, err := pg2s3.GenerateBackupName(prefix)
+	name, err := pg2s3.GenerateBackupName(cfg.BackupPrefix)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -163,8 +141,8 @@ func TestBackup(t *testing.T) {
 	}
 
 	// encrypt backup (if applicable)
-	if publicKey != "" {
-		backup, err = client.EncryptBackup(backup, publicKey)
+	if cfg.AgePublicKey != "" {
+		backup, err = client.EncryptBackup(backup, cfg.AgePublicKey)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -180,26 +158,12 @@ func TestBackup(t *testing.T) {
 }
 
 func TestRestore(t *testing.T) {
-	pgConnectionURI := requireEnv(t, pg2s3.EnvPGConnectionURI)
-	s3Endpoint := requireEnv(t, pg2s3.EnvS3Endpoint)
-	s3AccessKeyID := requireEnv(t, pg2s3.EnvS3AccessKeyID)
-	s3SecretAccessKey := requireEnv(t, pg2s3.EnvS3SecretAccessKey)
-	s3BucketName := requireEnv(t, pg2s3.EnvS3BucketName)
-
-	_ = requireEnv(t, pg2s3.EnvBackupPrefix)
-	_, err := strconv.Atoi(requireEnv(t, pg2s3.EnvBackupRetention))
+	cfg, err := pg2s3.ReadConfig("pg2s3.toml")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	publicKey := os.Getenv(pg2s3.EnvAgePublicKey)
-
-	client, err := pg2s3.New(
-		pgConnectionURI,
-		s3Endpoint,
-		s3AccessKeyID,
-		s3SecretAccessKey,
-		s3BucketName)
+	client, err := pg2s3.New(cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -224,7 +188,7 @@ func TestRestore(t *testing.T) {
 	}
 
 	// decrypt backup (if applicable)
-	if publicKey != "" {
+	if cfg.AgePublicKey != "" {
 		backup, err = client.DecryptBackup(backup, privateKey)
 		if err != nil {
 			t.Fatal(err)
@@ -239,24 +203,12 @@ func TestRestore(t *testing.T) {
 }
 
 func TestPrune(t *testing.T) {
-	pgConnectionURI := requireEnv(t, pg2s3.EnvPGConnectionURI)
-	s3Endpoint := requireEnv(t, pg2s3.EnvS3Endpoint)
-	s3AccessKeyID := requireEnv(t, pg2s3.EnvS3AccessKeyID)
-	s3SecretAccessKey := requireEnv(t, pg2s3.EnvS3SecretAccessKey)
-	s3BucketName := requireEnv(t, pg2s3.EnvS3BucketName)
-
-	_ = requireEnv(t, pg2s3.EnvBackupPrefix)
-	retention, err := strconv.Atoi(requireEnv(t, pg2s3.EnvBackupRetention))
+	cfg, err := pg2s3.ReadConfig("pg2s3.toml")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	client, err := pg2s3.New(
-		pgConnectionURI,
-		s3Endpoint,
-		s3AccessKeyID,
-		s3SecretAccessKey,
-		s3BucketName)
+	client, err := pg2s3.New(cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -268,12 +220,12 @@ func TestPrune(t *testing.T) {
 	}
 
 	// check if backup count exceeds retention
-	if len(backups) < retention {
+	if cfg.BackupRetention <= 0 || len(backups) < cfg.BackupRetention {
 		return
 	}
 
 	// determine expired backups to prune
-	expired := backups[retention:]
+	expired := backups[cfg.BackupRetention:]
 
 	// prune old backups
 	for _, backup := range expired {
