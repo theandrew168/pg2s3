@@ -26,9 +26,9 @@ type Config struct {
 	S3AccessKeyID     string `toml:"s3_access_key_id"`
 	S3SecretAccessKey string `toml:"s3_secret_access_key"`
 	S3BucketName      string `toml:"s3_bucket_name"`
-	AgePublicKey      string `toml:"age_public_key"`
 	BackupPrefix      string `toml:"backup_prefix"`
 	BackupRetention   int    `toml:"backup_retention"`
+	AgePublicKey      string `toml:"age_public_key"`
 }
 
 func ReadConfig(path string) (Config, error) {
