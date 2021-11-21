@@ -1,0 +1,9 @@
+[Unit]
+Description=pg2s3 database backup
+
+[Timer]
+OnCalendar=*-*-* 7:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

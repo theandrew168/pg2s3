@@ -113,7 +113,7 @@ func TestParseBackupTimestamp(t *testing.T) {
 }
 
 func TestBackup(t *testing.T) {
-	cfg, err := pg2s3.ReadConfig("pg2s3.toml")
+	cfg, err := pg2s3.ReadConfig("pg2s3.conf")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -158,7 +158,7 @@ func TestBackup(t *testing.T) {
 }
 
 func TestRestore(t *testing.T) {
-	cfg, err := pg2s3.ReadConfig("pg2s3.toml")
+	cfg, err := pg2s3.ReadConfig("pg2s3.conf")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -203,7 +203,7 @@ func TestRestore(t *testing.T) {
 }
 
 func TestPrune(t *testing.T) {
-	cfg, err := pg2s3.ReadConfig("pg2s3.toml")
+	cfg, err := pg2s3.ReadConfig("pg2s3.conf")
 	if err != nil {
 		t.Fatal(err)
 	}

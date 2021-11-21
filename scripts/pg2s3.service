@@ -1,0 +1,13 @@
+[Unit]
+Description=pg2s3 database backup
+After=network.target
+
+[Service]
+Type=oneshot
+User=pg2s3
+Group=pg2s3
+ExecStart=pg2s3 -conf /etc/pg2s3.conf -backup
+ExecStart=pg2s3 -conf /etc/pg2s3.conf -prune
+
+[Install]
+WantedBy=multi-user.target
