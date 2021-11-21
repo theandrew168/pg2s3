@@ -20,7 +20,7 @@ On an Ubuntu server, these tools are contained within the package `postgresql-cl
 ## Configuration
 Configuration for pg2s3 is handled exclusively through a config file written in [TOML](https://github.com/toml-lang/toml).
 By default, pg2s3 will look for a config file named `pg2s3.toml` in the current directory.
-The config file loaded by pg2s3 can be customized by using the `-conf` flag.
+This file can be overridden by using the `-conf` flag.
 
 Note that the S3 bucket defined by `s3_bucket_name` must be created outside of this tool.
 Bucket creation has more configuration and security options than pg2s3 is positioned to deal with.
