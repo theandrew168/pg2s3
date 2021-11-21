@@ -28,6 +28,7 @@ type Config struct {
 	S3BucketName      string `toml:"s3_bucket_name"`
 	BackupPrefix      string `toml:"backup_prefix"`
 	BackupRetention   int    `toml:"backup_retention"`
+	BackupSchedule    string `toml:"backup_schedule"`
 	AgePublicKey      string `toml:"age_public_key"`
 }
 

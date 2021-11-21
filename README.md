@@ -31,15 +31,16 @@ If programmatic backups are in use, you'll want to consider the scheduling frequ
 
 The following settings are required to run pg2s3:
 
-| Setting                | Description |
-| ---------------------- | ----------- |
-| `pg_connection_uri`    | PostgreSQL connection string |
-| `s3_endpoint`          | S3-compatible storage endpoint |
-| `s3_access_key_id`     | S3-compatible storage access key ID |
-| `s3_secret_access_key` | S3-compatible storage secret access key |
-| `s3_bucket_name`       | S3-compatible storage bucket name |
-| `backup_prefix`        | Prefix attached to the name of each backup |
-| `backup_retention`     | Number of backups to retain after pruning (0 to disable) |
+| Setting                | Required? | Description |
+| ---------------------- | --------- | ----------- |
+| `pg_connection_uri`    | Yes       | PostgreSQL connection string |
+| `s3_endpoint`          | Yes       | S3-compatible storage endpoint |
+| `s3_access_key_id`     | Yes       | S3-compatible storage access key ID |
+| `s3_secret_access_key` | Yes       | S3-compatible storage secret access key |
+| `s3_bucket_name`       | Yes       | S3-compatible storage bucket name |
+| `backup_prefix`        | Yes       | Prefix attached to the name of each backup |
+| `backup_retention`     | No        | Number of backups to retain after pruning |
+| `backup_schedule`      | No        | Backup schedule as a standard cron expression |
 
 ## Encryption
 Backups managed by pg2s3 can be optionally encrypted using [age](https://github.com/FiloSottile/age).
@@ -48,9 +49,9 @@ Note that the private key associated with this public key must be kept safe and 
 When restoring a backup, pg2s3 will prompt for the private key.
 This key is intentionally absent from pg2s3's environment in order to require user intervention for any data decryption.
 
-| Setting          | Description |
-| ---------------- | ----------- |
-| `age_public_key` | Public key for backup encryption |
+| Setting          | Required? | Description |
+| ---------------- | --------- | ----------- |
+| `age_public_key` | No        | Public key for backup encryption |
 
 ## Usage
 The pg2s3 command-line tool offers three commands:
