@@ -45,7 +45,7 @@ Backups managed by pg2s3 can be optionally encrypted using [age](https://github.
 To enable this feature, an age public key must be defined within the config file.
 Note that the private key associated with this public key must be kept safe and secure!
 When restoring a backup, pg2s3 will prompt for the private key.
-This key is intentionally absent from pg2s3's environment in order to require user intervention for any data decryption.
+This key is intentionally absent from pg2s3's configuration in order to require user intervention for any data decryption.
 
 | Setting          | Required? | Description |
 | ---------------- | --------- | ----------- |
