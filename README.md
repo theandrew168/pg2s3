@@ -57,7 +57,7 @@ The pg2s3 command-line tool offers three mutually-exclusive actions:
 * `pg2s3 -restore` - Download the latest backup from S3 and restore
 * `pg2s3 -prune` - Prune old backups from S3
 
-If none of these are provided, the pg2s3 will attempt to run in scheduled mode: sleeping until `backup_schedule` arrives and then performaing a backup + prune.
+If none of these are provided, pg2s3 will attempt to run in scheduled mode: sleeping until `backup_schedule` arrives and then performing a backup + prune.
 
 ## Local Development
 To develop and test locally, containers for [PostgreSQL](https://www.postgresql.org/) and [MinIO](https://min.io/) must be running:
