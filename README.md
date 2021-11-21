@@ -6,13 +6,11 @@ This project strives to be a simple and reliable backup solution for [PostgreSQL
 In general, pg2s3 dumps a given database and uploads it to an S3-compatible storage bucket.
 However, there is a bit more nuance involved in bookkeeping, restoration, and pruning.
 
-That being said, some features are intentionally left out of scope for this project.
-For example, PostgreSQL is the only supported database and S3 is the only supported storage method.
-The scheduling of periodic backups is also left out: rely on tools such as [cron](https://wiki.archlinux.org/title/cron) or [systemd timers](https://wiki.archlinux.org/title/Systemd/Timers) to handle the timing and frequency of programmatic backups.
-
 ## Install
-The pg2s3 tool is distributed as a single, static binary.
+The pg2s3 tool is distributed as a single, static binary for all major platforms.
+It is also released as a `.deb` for Debian-based Linux environments.
 Check the [releases page](https://github.com/theandrew168/pg2s3/releases) to find and download the latest version.
+
 Additionally, the environment where pg2s3 is executed must have `pg_dump` and `pg_restore` installed.
 These tools are part of the collection of [PostgreSQL Client Applications](https://www.postgresql.org/docs/12/reference-client.html).
 On an Ubuntu server, these tools are contained within the package `postgresql-client-<version>` based on the major version of PostgreSQL being used.
@@ -27,7 +25,7 @@ Bucket creation has more configuration and security options than pg2s3 is positi
 
 Additionally, the value defined by `backup_retention` simply refers to the _number_ of backups kept during a prune.
 It has nothing to do with a backup's age or total bucket size.
-If programmatic backups are in use, you'll want to consider the scheduling frequency when determining an appropriate retention count.
+If `backups_schedule` is set, you'll want to consider the scheduling frequency when determining an appropriate retention count.
 
 The following settings are required to run pg2s3:
 
@@ -40,7 +38,7 @@ The following settings are required to run pg2s3:
 | `s3_bucket_name`       | Yes       | S3-compatible storage bucket name |
 | `backup_prefix`        | Yes       | Prefix attached to the name of each backup |
 | `backup_retention`     | No        | Number of backups to retain after pruning |
-| `backup_schedule`      | No        | Backup schedule as a standard cron expression |
+| `backup_schedule`      | No        | Backup schedule as a standard cron expression (UTC) |
 
 ## Encryption
 Backups managed by pg2s3 can be optionally encrypted using [age](https://github.com/FiloSottile/age).
