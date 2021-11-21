@@ -15,6 +15,10 @@ if [ "$1" = "configure" ]; then
 			--comment "pg2s3 database backups" \
 			pg2s3
 	fi
+
+	# Update config file permissions
+	chown root:pg2s3 /etc/pg2s3.conf
+	chmod 0640 /etc/pg2s3.conf
 fi
 
 if [ "$1" = "configure" ] || [ "$1" = "abort-upgrade" ] || [ "$1" = "abort-deconfigure" ] || [ "$1" = "abort-remove" ] ; then
