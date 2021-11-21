@@ -39,7 +39,7 @@ The following settings are required to run pg2s3:
 | `s3_secret_access_key` | S3-compatible storage secret access key |
 | `s3_bucket_name`       | S3-compatible storage bucket name |
 | `backup_prefix`        | Prefix attached to the name of each backup |
-| `backup_retention`     | Number of backups to retain after pruning |
+| `backup_retention`     | Number of backups to retain after pruning (0 to disable) |
 
 ## Encryption
 Backups managed by pg2s3 can be optionally encrypted using [age](https://github.com/FiloSottile/age).
