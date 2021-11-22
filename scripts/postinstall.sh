@@ -22,6 +22,5 @@ fi
 chown root:pg2s3 /etc/pg2s3.conf
 chmod 0640 /etc/pg2s3.conf
 
-# Reload systemd and ensure pg2s3 is started
+# Reload systemd to pickup pg2s3.service
 systemctl daemon-reload
-systemctl restart pg2s3
