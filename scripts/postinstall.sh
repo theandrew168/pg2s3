@@ -11,8 +11,6 @@ if ! getent passwd pg2s3 >/dev/null; then
     useradd                                 \
         --system                            \
         --gid pg2s3                         \
-        --create-home                       \
-        --home-dir /var/lib/pg2s3           \
         --shell /usr/sbin/nologin           \
         --comment "pg2s3 database backups"  \
         pg2s3
