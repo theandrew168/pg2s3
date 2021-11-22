@@ -8,7 +8,9 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
+	"github.com/go-co-op/gocron"
 	"golang.org/x/term"
 
 	"github.com/theandrew168/pg2s3"
@@ -33,6 +35,15 @@ func main() {
 		log.Fatalln(err)
 	}
 
+	// check how many actions were specified
+	count := 0
+	actions := []bool{*actionBackup, *actionRestore, *actionPrune}
+	for _, action := range actions {
+		if action {
+			count++
+		}
+	}
+
 	if *actionBackup {
 		err = backup(client, cfg)
 		if err != nil {
@@ -52,6 +63,26 @@ func main() {
 		if err != nil {
 			log.Fatalln(err)
 		}
+	}
+
+	if count == 0 && cfg.BackupSchedule != "" {
+		log.Println("running scheduler")
+
+		s := gocron.NewScheduler(time.UTC)
+		s.Cron(cfg.BackupSchedule).Do(func(){
+			err := backup(client, cfg)
+			if err != nil {
+				log.Println(err)
+				return
+			}
+
+			err = prune(client, cfg)
+			if err != nil {
+				log.Println(err)
+				return
+			}
+		})
+		s.StartBlocking()
 	}
 }
 

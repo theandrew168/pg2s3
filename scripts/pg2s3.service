@@ -6,11 +6,11 @@ Requires=network-online.target
 
 [Service]
 Type=simple
+Restart=on-failure
+RestartSec=5
 User=pg2s3
 Group=pg2s3
 ExecStart=pg2s3 -conf /etc/pg2s3.conf
-PrivateTmp=true
-ProtectSystem=full
 
 [Install]
 WantedBy=multi-user.target

@@ -28,8 +28,8 @@ archives:
 nfpms:
   - package_name: pg2s3
     homepage: https://github.com/theandrew168/pg2s3
-    description: Simple PostgreSQL backups to S3-compatible storage
     maintainer: Andrew Dailey <andrew@shallowbrooksoftware.com>
+    description: Simple PostgreSQL backups to S3-compatible storage
     license: MIT
     formats:
       - deb
