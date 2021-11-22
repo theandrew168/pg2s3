@@ -23,4 +23,4 @@ format:
 
 .PHONY: clean
 clean:
-	rm -fr pg2s3 c.out
+	rm -fr pg2s3 c.out dist/
