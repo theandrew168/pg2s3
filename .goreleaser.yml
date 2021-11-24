@@ -3,7 +3,7 @@ before:
     - go mod tidy
 
 builds:
-  - main: ./cmd/cli/main.go
+  - main: cmd/cli/main.go
     env:
       - CGO_ENABLED=0
     goos:
@@ -35,15 +35,15 @@ nfpms:
       - deb
     bindir: /usr/bin
     contents:
-      - src: ./scripts/pg2s3.service
+      - src: scripts/pg2s3.service
         dst: /lib/systemd/system/pg2s3.service
       - src: pg2s3.conf
         dst: /etc/pg2s3.conf
         type: config
     scripts:
-      postinstall: ./scripts/postinstall.sh
-      preremove: ./scripts/preremove.sh
-      postremove: ./scripts/postremove.sh
+      postinstall: scripts/postinstall.sh
+      preremove: scripts/preremove.sh
+      postremove: scripts/postremove.sh
 
 checksum:
   name_template: checksums.txt
