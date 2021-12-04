@@ -20,7 +20,7 @@ import (
 func main() {
 	log.SetFlags(0)
 
-	conf := flag.String("conf", "pg2s3.conf", "pg2s3 config file")
+	conf := flag.String("conf", "/etc/pg2s3.conf", "pg2s3 config file")
 	actionBackup := flag.Bool("backup", false, "pg2s3 action: backup")
 	actionRestore := flag.Bool("restore", false, "pg2s3 action: restore")
 	actionPrune := flag.Bool("prune", false, "pg2s3 action: prune")
