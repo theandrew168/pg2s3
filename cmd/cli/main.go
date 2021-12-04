@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/coreos/go-systemd/daemon"
 	"github.com/go-co-op/gocron"
 	"golang.org/x/term"
 
@@ -66,8 +67,6 @@ func main() {
 	}
 
 	if count == 0 && cfg.BackupSchedule != "" {
-		log.Println("running scheduler")
-
 		s := gocron.NewScheduler(time.UTC)
 		s.Cron(cfg.BackupSchedule).Do(func(){
 			err := backup(client, cfg)
@@ -82,6 +81,11 @@ func main() {
 				return
 			}
 		})
+
+		// let systemd know that we are good to go (no-op if not using systemd)
+		daemon.SdNotify(false, daemon.SdNotifyReady)
+		log.Println("running scheduler")
+
 		s.StartBlocking()
 	}
 }
