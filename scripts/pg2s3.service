@@ -10,7 +10,7 @@ Restart=on-failure
 RestartSec=5
 User=pg2s3
 Group=pg2s3
-ExecStart=pg2s3 -conf /etc/pg2s3.conf
+ExecStart=/usr/bin/pg2s3 -conf /etc/pg2s3.conf
 
 [Install]
 WantedBy=multi-user.target
