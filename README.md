@@ -39,7 +39,7 @@ The following settings are required to run pg2s3:
 | `backup_prefix`        | No        | Prefix attached to the name of each backup (default "pg2s3") |
 | `backup_retention`     | No        | Number of backups to retain after pruning |
 | `backup_schedule`      | No        | Backup schedule as a standard cron expression (UTC) |
-| `restore_schemas`      | No        | List of schemas to restore (default "public") |
+| `restore_schemas`      | No        | List of schemas to restore (default ["public"]) |
 
 ## Encryption
 Backups managed by pg2s3 can be optionally encrypted using [age](https://github.com/FiloSottile/age).

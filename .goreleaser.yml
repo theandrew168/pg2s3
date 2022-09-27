@@ -19,7 +19,8 @@ builds:
       - 7  # Raspberry Pi 2, 3, 4
 
 archives:
-  - files:
+  - name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
+    files:
       - none*
     format_overrides:
       - goos: windows
@@ -27,6 +28,7 @@ archives:
 
 nfpms:
   - package_name: pg2s3
+    file_name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
     homepage: https://github.com/theandrew168/pg2s3
     maintainer: Andrew Dailey <andrew@shallowbrooksoftware.com>
     description: Simple PostgreSQL backups to S3-compatible storage
