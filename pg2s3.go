@@ -21,22 +21,40 @@ import (
 )
 
 type Config struct {
-	PGConnectionURI   string `toml:"pg_connection_uri"`
-	S3Endpoint        string `toml:"s3_endpoint"`
-	S3AccessKeyID     string `toml:"s3_access_key_id"`
-	S3SecretAccessKey string `toml:"s3_secret_access_key"`
-	S3BucketName      string `toml:"s3_bucket_name"`
-	BackupPrefix      string `toml:"backup_prefix"`
-	BackupRetention   int    `toml:"backup_retention"`
-	BackupSchedule    string `toml:"backup_schedule"`
-	AgePublicKey      string `toml:"age_public_key"`
+	PGConnectionURI   string   `toml:"pg_connection_uri"`
+	S3Endpoint        string   `toml:"s3_endpoint"`
+	S3AccessKeyID     string   `toml:"s3_access_key_id"`
+	S3SecretAccessKey string   `toml:"s3_secret_access_key"`
+	S3BucketName      string   `toml:"s3_bucket_name"`
+	BackupPrefix      string   `toml:"backup_prefix"`
+	BackupRetention   int      `toml:"backup_retention"`
+	BackupSchedule    string   `toml:"backup_schedule"`
+	RestoreSchemas    []string `toml:"restore_schemas"`
+	AgePublicKey      string   `toml:"age_public_key"`
 }
 
 func ReadConfig(path string) (Config, error) {
-	var cfg Config
+	// init Config struct with default values
+	cfg := Config{
+		BackupPrefix:   "pg2s3",
+		RestoreSchemas: []string{"public"},
+	}
 	meta, err := toml.DecodeFile(path, &cfg)
 	if err != nil {
 		return Config{}, err
+	}
+
+	// gather extra values
+	var extra []string
+	for _, keys := range meta.Undecoded() {
+		key := keys[0]
+		extra = append(extra, key)
+	}
+
+	// error upon extra values
+	if len(extra) > 0 {
+		msg := strings.Join(extra, ", ")
+		return Config{}, fmt.Errorf("extra config values: %s", msg)
 	}
 
 	// build set of present config keys
@@ -52,7 +70,6 @@ func ReadConfig(path string) (Config, error) {
 		"s3_access_key_id",
 		"s3_secret_access_key",
 		"s3_bucket_name",
-		"backup_prefix",
 	}
 
 	// ensure required keys are present
@@ -147,7 +164,7 @@ func New(cfg Config) (*Client, error) {
 
 func (c *Client) CreateBackup() (io.Reader, error) {
 	args := []string{
-		"-Fc",
+		"-Fc", // custom output format (compressed and flexible)
 		c.cfg.PGConnectionURI,
 	}
 	cmd := exec.Command("pg_dump", args...)
@@ -169,9 +186,13 @@ func (c *Client) CreateBackup() (io.Reader, error) {
 
 func (c *Client) RestoreBackup(backup io.Reader) error {
 	args := []string{
-		"-c",
-		"-d",
+		"-c", // clean DB object before recreating them
+		"-d", // database to be restored
 		c.cfg.PGConnectionURI,
+	}
+	for _, schema := range c.cfg.RestoreSchemas {
+		// specify which schemas should be restored
+		args = append(args, "-n", schema)
 	}
 	cmd := exec.Command("pg_restore", args...)
 
