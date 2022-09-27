@@ -10,16 +10,29 @@ build:
 
 .PHONY: test
 test:
-	go test -count=1 -v ./...
+	go test -count=1 ./...
 
 .PHONY: cover
 cover:
 	go test -coverprofile=c.out -coverpkg=./... -count=1 ./...
 	go tool cover -html=c.out
 
+.PHONY: release
+release:
+	goreleaser release --snapshot --rm-dist
+
+.PHONY: lint
+lint:
+	go run github.com/golangci/golangci-lint/cmd/golangci-lint@latest run --fast
+
 .PHONY: format
 format:
-	go fmt ./...
+	gofmt -l -s -w .
+
+.PHONY: update
+update:
+	go get -u ./...
+	go mod tidy
 
 .PHONY: clean
 clean:

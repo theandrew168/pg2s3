@@ -35,15 +35,16 @@ nfpms:
       - deb
     bindir: /usr/bin
     contents:
-      - src: scripts/pg2s3.service
+      - src: script/pg2s3.service
         dst: /lib/systemd/system/pg2s3.service
-      - src: pg2s3.conf
+        type: config
+      - src: script/pg2s3.conf
         dst: /etc/pg2s3.conf
         type: config
     scripts:
-      postinstall: scripts/postinstall.sh
-      preremove: scripts/preremove.sh
-      postremove: scripts/postremove.sh
+      postinstall: script/postinstall.sh
+      preremove: script/preremove.sh
+      postremove: script/postremove.sh
 
 checksum:
   name_template: checksums.txt

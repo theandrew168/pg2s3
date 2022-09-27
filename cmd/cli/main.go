@@ -68,7 +68,7 @@ func main() {
 
 	if count == 0 && cfg.BackupSchedule != "" {
 		s := gocron.NewScheduler(time.UTC)
-		s.Cron(cfg.BackupSchedule).Do(func(){
+		s.Cron(cfg.BackupSchedule).Do(func() {
 			err := backup(client, cfg)
 			if err != nil {
 				log.Println(err)
