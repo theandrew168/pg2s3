@@ -22,9 +22,3 @@ chmod 0640 /etc/pg2s3.conf
 
 # Reload systemd to pickup pg2s3.service
 systemctl daemon-reload
-
-# Restart if already running
-if systemctl is-active pg2s3 >/dev/null
-then
-    systemctl restart pg2s3 >/dev/null
-fi
