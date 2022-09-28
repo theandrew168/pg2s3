@@ -51,9 +51,9 @@ This key is intentionally absent from pg2s3's configuration in order to require 
 
 ## Usage
 The pg2s3 command-line tool offers three mutually-exclusive actions:
-* `pg2s3 -backup` - Create a new backup and upload to S3
-* `pg2s3 -restore` - Download the latest backup from S3 and restore
-* `pg2s3 -prune` - Prune old backups from S3
+* `pg2s3 backup` - Create a new backup and upload to S3
+* `pg2s3 restore` - Download the latest backup from S3 and restore
+* `pg2s3 prune` - Prune old backups from S3
 
 If none of these are provided, pg2s3 will attempt to run in scheduled mode: sleeping until `backup.schedule` arrives and then performing a backup + prune.
 

@@ -23,9 +23,6 @@ func main() {
 
 func run() int {
 	conf := flag.String("conf", "pg2s3.conf", "pg2s3 config file")
-	actionBackup := flag.Bool("backup", false, "pg2s3 action: backup")
-	actionRestore := flag.Bool("restore", false, "pg2s3 action: restore")
-	actionPrune := flag.Bool("prune", false, "pg2s3 action: prune")
 	flag.Parse()
 
 	cfg, err := config.ReadFile(*conf)
@@ -34,70 +31,79 @@ func run() int {
 		return 1
 	}
 
-	fmt.Printf("%+v\n", cfg)
-
 	client, err := pg2s3.NewClient(cfg)
 	if err != nil {
 		fmt.Println(err)
 		return 1
 	}
 
-	// check how many actions were specified
-	count := 0
-	actions := []bool{*actionBackup, *actionRestore, *actionPrune}
-	for _, action := range actions {
-		if action {
-			count++
-		}
+	// check for action (default run)
+	args := flag.Args()
+	var action string
+	if len(args) == 0 {
+		action = "run"
+	} else {
+		action = args[0]
 	}
 
-	if *actionBackup {
+	// backup: create a new backup
+	if action == "backup" {
 		err = backup(client, cfg)
 		if err != nil {
 			fmt.Println(err)
 			return 1
 		}
+
+		return 0
 	}
 
-	if *actionRestore {
+	// restore: restore the most recent backup
+	if action == "restore" {
 		err = restore(client, cfg)
 		if err != nil {
 			fmt.Println(err)
 			return 1
 		}
+
+		return 0
 	}
 
-	if *actionPrune {
+	// prune: delete the oldest backups above the retention count
+	if action == "prune" {
 		err = prune(client, cfg)
 		if err != nil {
 			fmt.Println(err)
 			return 1
 		}
+
+		return 0
 	}
 
-	if count == 0 && cfg.Backup.Schedule != "" {
-		s := gocron.NewScheduler(time.UTC)
-		s.Cron(cfg.Backup.Schedule).Do(func() {
-			err := backup(client, cfg)
-			if err != nil {
-				fmt.Println(err)
-				return
-			}
-
-			err = prune(client, cfg)
-			if err != nil {
-				fmt.Println(err)
-				return
-			}
-		})
-
-		// let systemd know that we are good to go (no-op if not using systemd)
-		daemon.SdNotify(false, daemon.SdNotifyReady)
-		fmt.Println("running scheduler")
-
-		s.StartBlocking()
+	if cfg.Backup.Schedule == "" {
+		fmt.Println("no backup schedule specified, exiting")
+		return 1
 	}
 
+	s := gocron.NewScheduler(time.UTC)
+	s.Cron(cfg.Backup.Schedule).Do(func() {
+		err := backup(client, cfg)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		err = prune(client, cfg)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+	})
+
+	// let systemd know that we are good to go (no-op if not using systemd)
+	daemon.SdNotify(false, daemon.SdNotifyReady)
+	fmt.Printf("running on schedule: %s\n", cfg.Backup.Schedule)
+
+	s.StartBlocking()
 	return 0
 }
 
