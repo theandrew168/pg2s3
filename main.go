@@ -5,7 +5,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"strings"
 	"time"
@@ -14,26 +13,33 @@ import (
 	"github.com/go-co-op/gocron"
 	"golang.org/x/term"
 
-	"github.com/theandrew168/pg2s3"
+	"github.com/theandrew168/pg2s3/internal/config"
+	"github.com/theandrew168/pg2s3/internal/pg2s3"
 )
 
 func main() {
-	log.SetFlags(0)
+	os.Exit(run())
+}
 
-	conf := flag.String("conf", "/etc/pg2s3.conf", "pg2s3 config file")
+func run() int {
+	conf := flag.String("conf", "pg2s3.conf", "pg2s3 config file")
 	actionBackup := flag.Bool("backup", false, "pg2s3 action: backup")
 	actionRestore := flag.Bool("restore", false, "pg2s3 action: restore")
 	actionPrune := flag.Bool("prune", false, "pg2s3 action: prune")
 	flag.Parse()
 
-	cfg, err := pg2s3.ReadConfig(*conf)
+	cfg, err := config.ReadFile(*conf)
 	if err != nil {
-		log.Fatalln(err)
+		fmt.Println(err)
+		return 1
 	}
 
-	client, err := pg2s3.New(cfg)
+	fmt.Printf("%+v\n", cfg)
+
+	client, err := pg2s3.NewClient(cfg)
 	if err != nil {
-		log.Fatalln(err)
+		fmt.Println(err)
+		return 1
 	}
 
 	// check how many actions were specified
@@ -48,46 +54,51 @@ func main() {
 	if *actionBackup {
 		err = backup(client, cfg)
 		if err != nil {
-			log.Fatalln(err)
+			fmt.Println(err)
+			return 1
 		}
 	}
 
 	if *actionRestore {
 		err = restore(client, cfg)
 		if err != nil {
-			log.Fatalln(err)
+			fmt.Println(err)
+			return 1
 		}
 	}
 
 	if *actionPrune {
 		err = prune(client, cfg)
 		if err != nil {
-			log.Fatalln(err)
+			fmt.Println(err)
+			return 1
 		}
 	}
 
-	if count == 0 && cfg.BackupSchedule != "" {
+	if count == 0 && cfg.Backup.Schedule != "" {
 		s := gocron.NewScheduler(time.UTC)
-		s.Cron(cfg.BackupSchedule).Do(func() {
+		s.Cron(cfg.Backup.Schedule).Do(func() {
 			err := backup(client, cfg)
 			if err != nil {
-				log.Println(err)
+				fmt.Println(err)
 				return
 			}
 
 			err = prune(client, cfg)
 			if err != nil {
-				log.Println(err)
+				fmt.Println(err)
 				return
 			}
 		})
 
 		// let systemd know that we are good to go (no-op if not using systemd)
 		daemon.SdNotify(false, daemon.SdNotifyReady)
-		log.Println("running scheduler")
+		fmt.Println("running scheduler")
 
 		s.StartBlocking()
 	}
+
+	return 0
 }
 
 func confirm(message string) bool {
@@ -96,7 +107,8 @@ func confirm(message string) bool {
 
 	response, err := reader.ReadString('\n')
 	if err != nil {
-		log.Fatalln(err)
+		fmt.Println(err)
+		return false
 	}
 
 	response = strings.ToLower(strings.TrimSpace(response))
@@ -107,9 +119,9 @@ func confirm(message string) bool {
 	}
 }
 
-func backup(client *pg2s3.Client, cfg pg2s3.Config) error {
+func backup(client *pg2s3.Client, cfg config.Config) error {
 	// generate name for backup
-	name, err := pg2s3.GenerateBackupName(cfg.BackupPrefix)
+	name, err := pg2s3.GenerateBackupName(cfg.Backup.Prefix)
 	if err != nil {
 		return err
 	}
@@ -121,8 +133,8 @@ func backup(client *pg2s3.Client, cfg pg2s3.Config) error {
 	}
 
 	// encrypt backup (if applicable)
-	if cfg.AgePublicKey != "" {
-		backup, err = client.EncryptBackup(backup, cfg.AgePublicKey)
+	if len(cfg.Encryption.PublicKeys) > 0 {
+		backup, err = client.EncryptBackup(backup, cfg.Encryption.PublicKeys)
 		if err != nil {
 			return err
 		}
@@ -136,11 +148,11 @@ func backup(client *pg2s3.Client, cfg pg2s3.Config) error {
 		return err
 	}
 
-	log.Printf("created %s\n", name)
+	fmt.Printf("created %s\n", name)
 	return nil
 }
 
-func restore(client *pg2s3.Client, cfg pg2s3.Config) error {
+func restore(client *pg2s3.Client, cfg config.Config) error {
 	// list all backups
 	backups, err := client.ListBackups()
 	if err != nil {
@@ -161,7 +173,7 @@ func restore(client *pg2s3.Client, cfg pg2s3.Config) error {
 	}
 
 	// decrypt backup (if applicable)
-	if cfg.AgePublicKey != "" {
+	if len(cfg.Encryption.PublicKeys) > 0 {
 		fmt.Print("enter private key: ")
 		input, err := term.ReadPassword(int(os.Stdin.Fd()))
 		if err != nil {
@@ -188,12 +200,12 @@ func restore(client *pg2s3.Client, cfg pg2s3.Config) error {
 	if err != nil {
 		return err
 	}
-	log.Printf("restored %s\n", latest)
+	fmt.Printf("restored %s\n", latest)
 
 	return nil
 }
 
-func prune(client *pg2s3.Client, cfg pg2s3.Config) error {
+func prune(client *pg2s3.Client, cfg config.Config) error {
 	// list all backups
 	backups, err := client.ListBackups()
 	if err != nil {
@@ -201,12 +213,12 @@ func prune(client *pg2s3.Client, cfg pg2s3.Config) error {
 	}
 
 	// exit early if retention is zero or limit hasn't been reached
-	if cfg.BackupRetention <= 0 || len(backups) <= cfg.BackupRetention {
+	if cfg.Backup.Retention <= 0 || len(backups) <= cfg.Backup.Retention {
 		return nil
 	}
 
 	// determine expired backups to prune
-	expired := backups[cfg.BackupRetention:]
+	expired := backups[cfg.Backup.Retention:]
 
 	// prune old backups
 	for _, backup := range expired {
@@ -214,7 +226,7 @@ func prune(client *pg2s3.Client, cfg pg2s3.Config) error {
 		if err != nil {
 			return err
 		}
-		log.Printf("deleted %s\n", backup)
+		fmt.Printf("deleted %s\n", backup)
 	}
 
 	return nil

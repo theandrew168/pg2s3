@@ -6,7 +6,7 @@ default: build
 
 .PHONY: build
 build:
-	go build -o pg2s3 cmd/cli/main.go
+	go build -o pg2s3 main.go
 
 .PHONY: test
 test:
