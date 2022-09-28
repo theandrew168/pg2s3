@@ -20,26 +20,23 @@ Configuration for pg2s3 is handled exclusively through a config file written in 
 By default, pg2s3 will look for a config file named `pg2s3.conf` in the current directory.
 This file can be overridden by using the `-conf` flag.
 
-Note that the S3 bucket defined by `s3_bucket_name` must be created outside of this tool.
+Note that the S3 bucket defined by `s3_url` must be created outside of this tool.
 Bucket creation has more configuration and security options than pg2s3 is positioned to deal with.
 
-Additionally, the value defined by `backup_retention` simply refers to the _number_ of backups kept during a prune.
+Additionally, the value defined by `backup.retention` simply refers to the _number_ of backups kept during a prune.
 It has nothing to do with a backup's age or total bucket size.
-If `backups_schedule` is set, you'll want to consider the scheduling frequency when determining an appropriate retention count.
+If `backup.schedule` is set, you'll want to consider the scheduling frequency when determining an appropriate retention count.
 
 The following settings are required to run pg2s3:
 
-| Setting                | Required? | Description |
-| ---------------------- | --------- | ----------- |
-| `pg_connection_uri`    | Yes       | PostgreSQL connection string |
-| `s3_endpoint`          | Yes       | S3-compatible storage endpoint |
-| `s3_access_key_id`     | Yes       | S3-compatible storage access key ID |
-| `s3_secret_access_key` | Yes       | S3-compatible storage secret access key |
-| `s3_bucket_name`       | Yes       | S3-compatible storage bucket name |
-| `backup_prefix`        | No        | Prefix attached to the name of each backup (default `"pg2s3"`) |
-| `backup_retention`     | No        | Number of backups to retain after pruning |
-| `backup_schedule`      | No        | Backup schedule as a standard cron expression (UTC) |
-| `restore_schemas`      | No        | List of schemas to restore (default `["public"]`) |
+| Setting            | Required? | Description |
+| ------------------ | --------- | ----------- |
+| `pg_url`           | Yes       | PostgreSQL connection string |
+| `s3_url`           | Yes       | S3-compatible storage connection string |
+| `backup.prefix`    | No        | Prefix attached to the name of each backup (default `"pg2s3"`) |
+| `backup.retention` | No        | Number of backups to retain after pruning |
+| `backup.schedule`  | No        | Backup schedule as a standard cron expression (UTC) |
+| `restore.schemas`  | No        | List of schemas to restore (default `["public"]`) |
 
 ## Encryption
 Backups managed by pg2s3 can be optionally encrypted using [age](https://github.com/FiloSottile/age).
@@ -48,9 +45,9 @@ Note that the private key associated with this public key must be kept safe and 
 When restoring a backup, pg2s3 will prompt for the private key.
 This key is intentionally absent from pg2s3's configuration in order to require user intervention for any data decryption.
 
-| Setting          | Required? | Description |
-| ---------------- | --------- | ----------- |
-| `age_public_key` | No        | Public key for backup encryption |
+| Setting                  | Required? | Description |
+| ------------------------ | --------- | ----------- |
+| `encryption.public_keys` | No        | Public keys for backup encryption |
 
 ## Usage
 The pg2s3 command-line tool offers three mutually-exclusive actions:
@@ -58,7 +55,7 @@ The pg2s3 command-line tool offers three mutually-exclusive actions:
 * `pg2s3 -restore` - Download the latest backup from S3 and restore
 * `pg2s3 -prune` - Prune old backups from S3
 
-If none of these are provided, pg2s3 will attempt to run in scheduled mode: sleeping until `backup_schedule` arrives and then performing a backup + prune.
+If none of these are provided, pg2s3 will attempt to run in scheduled mode: sleeping until `backup.schedule` arrives and then performing a backup + prune.
 
 ## Local Development
 To develop and test locally, containers for [PostgreSQL](https://www.postgresql.org/) and [MinIO](https://min.io/) must be running:
