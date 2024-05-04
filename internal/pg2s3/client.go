@@ -10,7 +10,7 @@ import (
 
 	"filippo.io/age"
 	"github.com/djherbis/buffer"
-	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v5"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 
