@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/coreos/go-systemd/daemon"
+	"github.com/coreos/go-systemd/v22/daemon"
 	"github.com/go-co-op/gocron"
 	"golang.org/x/term"
 

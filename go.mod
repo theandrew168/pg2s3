@@ -5,7 +5,7 @@ go 1.22
 require (
 	filippo.io/age v1.1.1
 	github.com/BurntSushi/toml v1.3.2
-	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf
+	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/djherbis/buffer v1.2.0
 	github.com/go-co-op/gocron v1.37.0
 	github.com/jackc/pgx/v4 v4.18.3
