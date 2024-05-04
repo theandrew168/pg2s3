@@ -8,27 +8,22 @@ builds:
       - CGO_ENABLED=0
     goos:
       - linux
-      - windows
       - darwin
+      - windows
     goarch:
       - amd64
-      - arm
       - arm64
-    goarm:
-      - 6  # Raspberry Pi A, B, Zero
-      - 7  # Raspberry Pi 2, 3, 4
 
 archives:
-  - name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
-    files:
-      - none*
+  - name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+    # use zip for windows archives
     format_overrides:
       - goos: windows
         format: zip
 
 nfpms:
   - package_name: pg2s3
-    file_name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
+    file_name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
     homepage: https://github.com/theandrew168/pg2s3
     maintainer: Andrew Dailey <andrew@shallowbrooksoftware.com>
     description: Simple PostgreSQL backups to S3-compatible storage
@@ -47,12 +42,6 @@ nfpms:
       postinstall: script/postinstall.sh
       preremove: script/preremove.sh
       postremove: script/postremove.sh
-
-checksum:
-  name_template: checksums.txt
-
-snapshot:
-  name_template: "{{ incpatch .Version }}-next"
 
 changelog:
   sort: asc

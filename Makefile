@@ -19,7 +19,7 @@ cover:
 
 .PHONY: release
 release:
-	goreleaser release --snapshot --rm-dist
+	goreleaser release --clean --snapshot
 
 .PHONY: lint
 lint:
