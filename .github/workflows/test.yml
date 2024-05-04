@@ -12,7 +12,7 @@ jobs:
     - name: Install latest PostgreSQL client tools
       run: |
         sudo apt install -y postgresql-common
-        sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
+        sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
         sudo apt install -y postgresql-client
     - name: Checkout source
       uses: actions/checkout@v2
