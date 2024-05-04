@@ -10,7 +10,7 @@ build:
 
 .PHONY: test
 test:
-	go test -count=1 ./...
+	go test -count=1 -shuffle=on -race -vet=all -failfast ./...
 
 .PHONY: cover
 cover:
@@ -20,10 +20,6 @@ cover:
 .PHONY: release
 release:
 	goreleaser release --clean --snapshot
-
-.PHONY: lint
-lint:
-	go run github.com/golangci/golangci-lint/cmd/golangci-lint@latest run --fast
 
 .PHONY: format
 format:

@@ -109,6 +109,34 @@ func TestRestore(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// generate name for backup
+	name, err := pg2s3.GenerateBackupName(cfg.Backup.Prefix)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// create backup
+	backup, err := client.CreateBackup()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// encrypt backup (if applicable)
+	if len(cfg.Encryption.PublicKeys) > 0 {
+		backup, err = client.EncryptBackup(backup, cfg.Encryption.PublicKeys)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		name = name + ".age"
+	}
+
+	// upload backup
+	err = client.UploadBackup(name, backup)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	// list all backups
 	backups, err := client.ListBackups()
 	if err != nil {
@@ -123,7 +151,7 @@ func TestRestore(t *testing.T) {
 	latest := backups[0]
 
 	// download backup
-	backup, err := client.DownloadBackup(latest)
+	backup, err = client.DownloadBackup(latest)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -151,6 +179,34 @@ func TestPrune(t *testing.T) {
 	}
 
 	client, err := pg2s3.NewClient(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// generate name for backup
+	name, err := pg2s3.GenerateBackupName(cfg.Backup.Prefix)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// create backup
+	backup, err := client.CreateBackup()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// encrypt backup (if applicable)
+	if len(cfg.Encryption.PublicKeys) > 0 {
+		backup, err = client.EncryptBackup(backup, cfg.Encryption.PublicKeys)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		name = name + ".age"
+	}
+
+	// upload backup
+	err = client.UploadBackup(name, backup)
 	if err != nil {
 		t.Fatal(err)
 	}
