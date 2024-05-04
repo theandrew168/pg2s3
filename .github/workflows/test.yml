@@ -7,6 +7,9 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     steps:
+    - name: Install latest postgres client tools
+      run: |
+        sudo apt install -y postgresql-client-16
     - name: Checkout source
       uses: actions/checkout@v2
     - name: Start containers
