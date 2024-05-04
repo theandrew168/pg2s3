@@ -2,15 +2,17 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
 	"strings"
 	"time"
 
 	"github.com/coreos/go-systemd/v22/daemon"
-	"github.com/go-co-op/gocron"
+	"github.com/go-co-op/gocron/v2"
 	"golang.org/x/term"
 
 	"github.com/theandrew168/pg2s3/internal/config"
@@ -84,26 +86,51 @@ func run() int {
 		return 1
 	}
 
-	s := gocron.NewScheduler(time.UTC)
-	s.Cron(cfg.Backup.Schedule).Do(func() {
-		err := backup(client, cfg)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
+	s, err := gocron.NewScheduler(
+		gocron.WithLocation(time.UTC),
+	)
+	if err != nil {
+		fmt.Println(err)
+		return 1
+	}
+	_, err = s.NewJob(
+		gocron.CronJob(cfg.Backup.Schedule, false),
+		gocron.NewTask(func() {
+			err := backup(client, cfg)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
 
-		err = prune(client, cfg)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-	})
+			err = prune(client, cfg)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+		}),
+	)
+	if err != nil {
+		fmt.Println(err)
+		return 1
+	}
 
 	// let systemd know that we are good to go (no-op if not using systemd)
 	daemon.SdNotify(false, daemon.SdNotifyReady)
 	fmt.Printf("running on schedule: %s\n", cfg.Backup.Schedule)
 
-	s.StartBlocking()
+	// create a context that cancels upon receiving an interrupt signal
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
+
+	s.Start()
+
+	<-ctx.Done()
+	err = s.Shutdown()
+	if err != nil {
+		fmt.Println(err)
+		return 1
+	}
+
 	return 0
 }
 
