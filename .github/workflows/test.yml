@@ -7,9 +7,13 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     steps:
-    - name: Install latest postgres client tools
+    # Based on:
+    # https://www.postgresql.org/download/linux/ubuntu/
+    - name: Install latest PostgreSQL client tools
       run: |
-        sudo apt install -y postgresql-client-16
+        sudo apt install -y postgresql-common
+        sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
+        sudo apt install -y postgresql-client
     - name: Checkout source
       uses: actions/checkout@v2
     - name: Start containers
