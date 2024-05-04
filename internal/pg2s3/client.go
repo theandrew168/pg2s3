@@ -22,7 +22,6 @@ type Client struct {
 }
 
 func NewClient(cfg config.Config) (*Client, error) {
-	// TODO: better use of context here? timeouts?
 	ctx := context.Background()
 
 	// instantiate a pg2s3 client
