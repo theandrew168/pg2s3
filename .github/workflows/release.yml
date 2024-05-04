@@ -13,9 +13,14 @@ jobs:
     name: Release
     runs-on: ubuntu-latest
     steps:
-    - name: Install latest postgres client tools
+    # Based on:
+    # https://www.postgresql.org/download/linux/ubuntu/
+    - name: Install latest PostgreSQL client tools
       run: |
-        sudo apt install -y postgresql-client-16
+        sudo apt install -y postgresql-common
+        sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+        sudo apt purge -y postgresql-client-common
+        sudo apt install -y postgresql-client
     - name: Checkout source
       uses: actions/checkout@v2
       with:
