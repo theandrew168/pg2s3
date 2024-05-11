@@ -104,6 +104,11 @@ func TestRestore(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	err = createBucket(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	client, err := pg2s3.NewClient(cfg)
 	if err != nil {
 		t.Fatal(err)
@@ -174,6 +179,11 @@ func TestRestore(t *testing.T) {
 func TestPrune(t *testing.T) {
 	// read the local development config file
 	cfg, err := config.ReadFile("../../pg2s3.conf")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = createBucket(cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
