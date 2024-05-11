@@ -20,23 +20,29 @@ import (
 )
 
 func main() {
-	os.Exit(run())
+	code := 0
+
+	err := run()
+	if err != nil {
+		fmt.Println(err)
+		code = 1
+	}
+
+	os.Exit(code)
 }
 
-func run() int {
+func run() error {
 	conf := flag.String("conf", "pg2s3.conf", "pg2s3 config file")
 	flag.Parse()
 
 	cfg, err := config.ReadFile(*conf)
 	if err != nil {
-		fmt.Println(err)
-		return 1
+		return err
 	}
 
 	client, err := pg2s3.NewClient(cfg)
 	if err != nil {
-		fmt.Println(err)
-		return 1
+		return err
 	}
 
 	// check for action (default run)
@@ -50,72 +56,56 @@ func run() int {
 
 	// backup: create a new backup
 	if action == "backup" {
-		err = backup(client, cfg)
-		if err != nil {
-			fmt.Println(err)
-			return 1
-		}
-
-		return 0
+		return backup(client, cfg)
 	}
 
 	// restore: restore the most recent backup
 	if action == "restore" {
-		err = restore(client, cfg)
-		if err != nil {
-			fmt.Println(err)
-			return 1
-		}
-
-		return 0
+		return restore(client, cfg)
 	}
 
 	// prune: delete the oldest backups above the retention count
 	if action == "prune" {
-		err = prune(client, cfg)
-		if err != nil {
-			fmt.Println(err)
-			return 1
-		}
-
-		return 0
+		return prune(client, cfg)
 	}
 
 	if cfg.Backup.Schedule == "" {
+		// TODO: replace with logging
 		fmt.Println("no backup schedule specified, exiting")
-		return 1
+		return nil
 	}
 
 	s, err := gocron.NewScheduler(
 		gocron.WithLocation(time.UTC),
 	)
 	if err != nil {
-		fmt.Println(err)
-		return 1
+		return err
 	}
 	_, err = s.NewJob(
 		gocron.CronJob(cfg.Backup.Schedule, false),
 		gocron.NewTask(func() {
 			err := backup(client, cfg)
 			if err != nil {
+				// TODO: replace with logging
 				fmt.Println(err)
 				return
 			}
 
 			err = prune(client, cfg)
 			if err != nil {
+				// TODO: replace with logging
 				fmt.Println(err)
 				return
 			}
 		}),
 	)
 	if err != nil {
-		fmt.Println(err)
-		return 1
+		return err
 	}
 
 	// let systemd know that we are good to go (no-op if not using systemd)
 	daemon.SdNotify(false, daemon.SdNotifyReady)
+	// TODO: replace with logging
 	fmt.Printf("running on schedule: %s\n", cfg.Backup.Schedule)
 
 	// create a context that cancels upon receiving an interrupt signal
@@ -127,11 +117,10 @@ func run() int {
 	<-ctx.Done()
 	err = s.Shutdown()
 	if err != nil {
-		fmt.Println(err)
-		return 1
+		return err
 	}
 
-	return 0
+	return nil
 }
 
 func confirm(message string) bool {
