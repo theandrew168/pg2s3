@@ -85,8 +85,11 @@ func (c *Client) CreateBackup() (io.Reader, error) {
 
 func (c *Client) RestoreBackup(backup io.Reader) error {
 	args := []string{
-		"-c", // clean DB object before recreating them
-		"-d", // database to be restored
+		"--clean",         // clean DB object before recreating them
+		"--if-exists",     // use IF EXISTS when dropping objects
+		"--no-owner",      // skip restoration of object ownership
+		"--no-privileges", // skip restoration of access privileges (grant/revoke)
+		"-d",              // database to be restored
 		c.cfg.PGURL,
 	}
 	for _, schema := range c.cfg.Restore.Schemas {
