@@ -1,5 +1,6 @@
 /pg2s3
 dist/
+*.local.conf
 
 # Binaries for programs and plugins
 *.exe
