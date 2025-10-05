@@ -24,9 +24,6 @@ func TestRead(t *testing.T) {
 		retention = 30
 		schedule = "0 9 * * *"
 		
-		[restore]
-		schemas = ["foo", "bar"]
-		
 		[encryption]
 		public_keys = [
 			"age156hm5jvxfvf8xf0zjs52gc5hhq64rt23gw3fehqj2vu77sk07a5qvplj52",
@@ -53,16 +50,13 @@ func TestRead(t *testing.T) {
 	if cfg.Backup.Schedule != "0 9 * * *" {
 		t.Errorf("got %q; want %q", cfg.Backup.Schedule, "0 9 * * *")
 	}
-	if !reflect.DeepEqual(cfg.Restore.Schemas, []string{"foo", "bar"}) {
-		t.Errorf("got %v; want %v", cfg.Restore.Schemas, []string{"foo", "bar"})
-	}
 	if !reflect.DeepEqual(
 		cfg.Encryption.PublicKeys,
 		[]string{"age156hm5jvxfvf8xf0zjs52gc5hhq64rt23gw3fehqj2vu77sk07a5qvplj52"},
 	) {
 		t.Errorf(
 			"got %q; want %q",
-			cfg.Restore.Schemas,
+			cfg.Encryption.PublicKeys,
 			[]string{"age156hm5jvxfvf8xf0zjs52gc5hhq64rt23gw3fehqj2vu77sk07a5qvplj52"},
 		)
 	}
@@ -87,9 +81,6 @@ func TestOptional(t *testing.T) {
 	}
 	if cfg.Backup.Prefix != "pg2s3" {
 		t.Errorf("got %q; want %q", cfg.Backup.Prefix, "pg2s3")
-	}
-	if !reflect.DeepEqual(cfg.Restore.Schemas, []string{"public"}) {
-		t.Errorf("got %v; want %v", cfg.Restore.Schemas, []string{"public"})
 	}
 }
 

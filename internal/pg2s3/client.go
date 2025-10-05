@@ -62,6 +62,7 @@ func NewClient(cfg config.Config) (*Client, error) {
 }
 
 func (c *Client) CreateBackup() (io.Reader, error) {
+	// leave extra information in the back up (owners, privileges, etc) in case we ever need them
 	args := []string{
 		"-Fc", // custom output format (compressed and flexible)
 		c.cfg.PGURL,
@@ -91,10 +92,6 @@ func (c *Client) RestoreBackup(backup io.Reader) error {
 		"--no-privileges", // skip restoration of access privileges (grant/revoke)
 		"-d",              // database to be restored
 		c.cfg.PGURL,
-	}
-	for _, schema := range c.cfg.Restore.Schemas {
-		// specify which schemas should be restored
-		args = append(args, "-n", schema)
 	}
 	cmd := exec.Command("pg_restore", args...)
 

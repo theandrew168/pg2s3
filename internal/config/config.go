@@ -14,10 +14,6 @@ type Backup struct {
 	Schedule  string `toml:"schedule"`
 }
 
-type Restore struct {
-	Schemas []string `toml:"schemas"`
-}
-
 type Encryption struct {
 	PublicKeys []string `toml:"public_keys"`
 }
@@ -28,7 +24,6 @@ type Config struct {
 	PGURL      string     `toml:"pg_url"`
 	S3URL      string     `toml:"s3_url"`
 	Backup     Backup     `toml:"backup"`
-	Restore    Restore    `toml:"restore"`
 	Encryption Encryption `toml:"encryption"`
 }
 
@@ -37,9 +32,6 @@ func Read(data string) (Config, error) {
 	cfg := Config{
 		Backup: Backup{
 			Prefix: "pg2s3",
-		},
-		Restore: Restore{
-			Schemas: []string{"public"},
 		},
 	}
 	meta, err := toml.Decode(data, &cfg)

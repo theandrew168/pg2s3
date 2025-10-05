@@ -6,6 +6,19 @@ This project strives to be a simple and reliable backup solution for [PostgreSQL
 In general, pg2s3 dumps a given database and uploads it to an S3-compatible storage bucket.
 However, there is a bit more nuance involved in bookkeeping, restoration, and pruning.
 
+### Data Included
+The backups created by pg2s3 are data-only and don't include global information such as roles and tablespaces.
+To include those would require running pg2s3 as a database superuser which introduces additional security risks.
+Instead, it is expected that restores will only ever be ran against databases that are already configured with the necessary roles.
+More specifically, any schemes / tables that need to be created (as part of the restoration) will be owned by the user that pg2s3 used to connect to the database.
+
+This tool is intended for simple database access patterns: where all schems and tables within a database are owned by a single user and have default permissions.
+If your use case is more complex than this and you need support for any of the following:
+1. Recreating existing roles (users) and modifying table ownership
+2. Recreating existing permissions (grants / revokes) on tables
+
+Then pg2s3 might not be suitable for your use case and you should consider something with more features.
+
 ## Install
 The pg2s3 tool is distributed as a single, static binary for all major platforms.
 It is also released as a `.deb` for Debian-based Linux environments.
@@ -36,7 +49,6 @@ The following settings are required to run pg2s3:
 | `backup.prefix`    | No        | Prefix attached to the name of each backup (default `"pg2s3"`) |
 | `backup.retention` | No        | Number of backups to retain after pruning |
 | `backup.schedule`  | No        | Backup schedule as a standard cron expression (UTC) |
-| `restore.schemas`  | No        | List of schemas to restore (default `["public"]`) |
 
 ## Encryption
 Backups managed by pg2s3 can be optionally encrypted using [age](https://github.com/FiloSottile/age).
