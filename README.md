@@ -10,6 +10,7 @@ However, there is a bit more nuance involved in bookkeeping, restoration, and pr
 The backups created by pg2s3 are data-only and don't include global information such as roles and tablespaces.
 To include those would require running pg2s3 as a database superuser which introduces additional security risks.
 One of the design goals for pg2s3 was to be as useful as possible without requiring elevated database access.
+
 Instead, it is expected that restores will only ever be ran against databases that are already configured with the necessary roles.
 During restoration, any schemes / tables that need to be created will be owned by the user that pg2s3 uses to connect to the database.
 
