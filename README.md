@@ -49,8 +49,9 @@ The following settings are available for pg2s3:
 | `pg_url`           | Yes       | PostgreSQL connection string |
 | `s3_url`           | Yes       | S3-compatible storage connection string |
 | `backup.prefix`    | No        | Prefix attached to the name of each backup (default `"pg2s3"`) |
-| `backup.retention` | No        | Number of backups to retain after pruning |
-| `backup.schedule`  | No        | Backup schedule as a standard cron expression (UTC) |
+| `backup.retention` | No        | Number of backups to retain after pruning (defaults to keeping all backups) |
+| `backup.schedule`  | No        | Backup schedule as a standard cron expression (UTC, required if running in scheduled mode) |
+| `restore.schemas`  | No        | List of schemas to restore (defaults to all schemas) |
 
 ## Encryption
 Backups managed by pg2s3 can be optionally encrypted using [age](https://github.com/FiloSottile/age).

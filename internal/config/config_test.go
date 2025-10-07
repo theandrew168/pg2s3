@@ -23,6 +23,9 @@ func TestRead(t *testing.T) {
 		prefix = "foobar"
 		retention = 30
 		schedule = "0 9 * * *"
+
+		[restore]
+		schemas = ["foo", "bar"]
 		
 		[encryption]
 		public_keys = [
@@ -49,6 +52,9 @@ func TestRead(t *testing.T) {
 	}
 	if cfg.Backup.Schedule != "0 9 * * *" {
 		t.Errorf("got %q; want %q", cfg.Backup.Schedule, "0 9 * * *")
+	}
+	if !reflect.DeepEqual(cfg.Restore.Schemas, []string{"foo", "bar"}) {
+		t.Errorf("got %v; want %v", cfg.Restore.Schemas, []string{"foo", "bar"})
 	}
 	if !reflect.DeepEqual(
 		cfg.Encryption.PublicKeys,
@@ -81,6 +87,9 @@ func TestOptional(t *testing.T) {
 	}
 	if cfg.Backup.Prefix != "pg2s3" {
 		t.Errorf("got %q; want %q", cfg.Backup.Prefix, "pg2s3")
+	}
+	if !reflect.DeepEqual(cfg.Restore.Schemas, []string{}) {
+		t.Errorf("got %v; want %v", cfg.Restore.Schemas, []string{})
 	}
 }
 

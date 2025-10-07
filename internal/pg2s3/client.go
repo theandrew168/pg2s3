@@ -93,6 +93,10 @@ func (c *Client) RestoreBackup(backup io.Reader) error {
 		"-d",              // database to be restored
 		c.cfg.PGURL,
 	}
+	for _, schema := range c.cfg.Restore.Schemas {
+		// if configured, specify which schemas should be restored
+		args = append(args, "-n", schema)
+	}
 	cmd := exec.Command("pg_restore", args...)
 
 	cmd.Stdin = backup
